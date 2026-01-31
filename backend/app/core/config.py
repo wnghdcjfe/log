@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Personal Memory System"
     API_V1_STR: str = "/api/v1"
@@ -8,12 +9,21 @@ class Settings(BaseSettings):
     # MongoDB (Atlas)
     # Example: mongodb+srv://<user>:<password>@cluster0.example.mongodb.net/?retryWrites=true&w=majority
     MONGODB_URI: str
-    DATABASE_NAME: str = "memory_db"
+    DATABASE_NAME: str = "outbrain"
+    COLLECTION_NAME: str = "diaries"
 
     # Neo4j
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
     NEO4J_PASSWORD: str = "password"
+
+    # LLM Settings
+    LLM_PROVIDER: str = "openai"  # "openai" or "nvidia"
+
+    # OpenAI
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL_NAME: str = "gpt-4o"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # NVIDIA NeMo (LLM)
     NVIDIA_API_KEY: str = ""
@@ -21,6 +31,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
 
 @lru_cache()
 def get_settings():

@@ -1,32 +1,48 @@
 import httpx
-from typing import List, Optional
 import json
+from typing import List, Optional, Protocol, runtime_checkable
+from abc import ABC, abstractmethod
+
 from app.models.domain.graph import GraphData, GraphEvent
 from app.core.config import get_settings
 
 settings = get_settings()
 
 
-class LLMService:
+class LLMServiceInterface(ABC):
+    @abstractmethod
+    async def get_embedding(self, text: str) -> List[float]:
+        pass
+
+    @abstractmethod
+    async def generate_graph_cypher(
+        self, text: str, user_id: str, record_id: str, date: str
+    ) -> str:
+        pass
+
+    @abstractmethod
+    async def generate_answer_with_reasoning(
+        self, question: str, context_records: List[dict], context_graph: dict
+    ) -> dict:
+        pass
+
+    @abstractmethod
+    async def extract_entities(self, text: str) -> GraphData:
+        pass
+
+
+class NvidiaLLMService(LLMServiceInterface):
     """
-    NVIDIA NeMo / NVIDIA NIM API와 상호작용하는 서비스입니다.
-    현재 임베딩 생성 및 채팅(LLM) 기능을 제공합니다.
+    NVIDIA NeMo / NVIDIA NIM API Service
     """
 
-    # NVIDIA Embeddings 엔드포인트 예시 (실제 엔드포인트로 교체 필요)
-    # NVIDIA NIM 공통 플레이스홀더 엔드포인트 사용
     EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings"
     CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-    @staticmethod
-    async def get_embedding(text: str) -> List[float]:
-        """
-        NVIDIA NeMo를 사용하여 주어진 텍스트에 대한 임베딩을 생성합니다.
-        """
+    async def get_embedding(self, text: str) -> List[float]:
         if not settings.NVIDIA_API_KEY:
-            # Fallback or Mock for local dev if key is missing
             print("WARNING: NVIDIA_API_KEY not set. Returning mock embedding.")
-            return [0.0] * 1024  # Mock 1024-dim vector
+            return [0.0] * 1024
 
         headers = {
             "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
@@ -36,35 +52,28 @@ class LLMService:
 
         payload = {
             "input": text,
-            "model": "nvidia/nv-embed-v1",  # Example model name, verify actual model
+            "model": "nvidia/nv-embed-v1",
         }
 
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
-                    LLMService.EMBEDDING_URL,
+                    self.EMBEDDING_URL,
                     json=payload,
                     headers=headers,
                     timeout=10.0,
                 )
                 response.raise_for_status()
                 data = response.json()
-                # OpenAI compatible response format
                 return data["data"][0]["embedding"]
             except Exception as e:
                 print(f"Error calling NVIDIA API: {e}")
-                # API 실패 시 개발 중 안정성을 위한 모의 폴백
                 return [0.0] * 1024
 
-    @staticmethod
     async def generate_graph_cypher(
-        text: str, user_id: str, record_id: str, date: str
+        self, text: str, user_id: str, record_id: str, date: str
     ) -> str:
-        """
-        일기 내용을 바탕으로 그래프 노드/관계를 삽입하는 Cypher 쿼리를 생성합니다.
-        """
         if not settings.NVIDIA_API_KEY:
-            print("WARNING: NVIDIA_API_KEY not set. Returning dummy query.")
             return ""
 
         headers = {
@@ -73,26 +82,8 @@ class LLMService:
             "Accept": "application/json",
         }
 
-        # 스키마 정의 프롬프트 (영어 유지)
-        schema_desc = """
-        Graph Schema:
-        - Nodes:
-          - (:Record {recordId, date, createdAt, userId})
-          - (:Event {id, summary, userId})
-          - (:Person {name, userId})
-          - (:Emotion {label, userId})
-          - (:Action {description, userId})
-          - (:Outcome {description, userId})
-          - (:User {userId})
-        
-        - Relationships:
-          - (:User)-[:OWNS]->(:Record)
-          - (:Record)-[:HAS_EVENT]->(:Event)
-          - (:Record)-[:HAS_EMOTION]->(:Emotion)
-          - (:Event)-[:INVOLVES]->(:Person)
-          - (:Event)-[:HAS_ACTION]->(:Action)
-          - (:Event)-[:LEADS_TO]->(:Outcome)
-        """
+        # Shared Schema Description
+        schema_desc = self._get_schema_description()
 
         prompt = f"""
         You are a Neo4j Cypher export.
@@ -117,54 +108,117 @@ class LLMService:
         payload = {
             "model": "meta/llama-3.1-70b-instruct",
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.1,  # Low temperature for code generation stability
+            "temperature": 0.1,
             "max_tokens": 2048,
             "stream": False,
         }
 
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    LLMService.CHAT_URL,
-                    json=payload,
-                    headers=headers,
-                    timeout=30.0,
-                )
-                response.raise_for_status()
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
+        return await self._call_chat_api(headers, payload)
 
-                # Cleanup markdown formatting if present
-                clean_query = (
-                    content.replace("```cypher", "").replace("```", "").strip()
-                )
-                return clean_query
-
-            except Exception as e:
-                print(f"Error generating Cypher: {e}")
-                return ""
-
-    @staticmethod
     async def generate_answer_with_reasoning(
-        question: str, context_records: List[dict], context_graph: dict
+        self, question: str, context_records: List[dict], context_graph: dict
     ) -> dict:
-        """
-        다음을 기반으로 답변을 종합합니다:
-        - 유사한 기록 (의미 메모리 - Vector Memory)
-        - 연결된 그래프 노드 (관계 메모리 - Relationship Memory)
+        if not settings.NVIDIA_API_KEY:
+            return self._mock_reasoning_response()
 
-        반환값: { "answer": str, "confidence": float, "reasoning_path": dict }
+        headers = {
+            "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        records_text, graph_text = self._format_context(context_records, context_graph)
+        prompt = self._get_reasoning_prompt(question, records_text, graph_text)
+
+        payload = {
+            "model": "meta/llama-3.1-70b-instruct",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        try:
+            content = await self._call_chat_api(headers, payload)
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_content)
+        except Exception as e:
+            print(f"Error generating answer: {e}")
+            return {
+                "answer": "Error generating answer",
+                "confidence": 0.0,
+                "reasoning_summary": str(e),
+            }
+
+    async def extract_entities(self, text: str) -> GraphData:
+        if not settings.NVIDIA_API_KEY:
+            return self._mock_graph_data()
+
+        headers = {
+            "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        prompt = self._get_extraction_prompt(text)
+
+        payload = {
+            "model": "meta/llama-3.1-70b-instruct",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        try:
+            content = await self._call_chat_api(headers, payload)
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(clean_content)
+            return GraphData(**parsed)
+        except Exception as e:
+            print(f"Entities extraction error: {e}")
+            return GraphData(events=[], emotions=[])
+
+    # --- Helpers ---
+    async def _call_chat_api(self, headers: dict, payload: dict) -> str:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.CHAT_URL, json=payload, headers=headers, timeout=30.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+
+    def _get_schema_description(self):
+        return """
+        Graph Schema:
+        - Nodes:
+          - (:Record {recordId, date, createdAt, userId})
+          - (:Event {id, summary, userId})
+          - (:Person {name, userId})
+          - (:Emotion {label, userId})
+          - (:Action {description, userId})
+          - (:Outcome {description, userId})
+          - (:User {userId})
+        
+        - Relationships:
+          - (:User)-[:OWNS]->(:Record)
+          - (:Record)-[:HAS_EVENT]->(:Event)
+          - (:Record)-[:HAS_EMOTION]->(:Emotion)
+          - (:Event)-[:INVOLVES]->(:Person)
+          - (:Event)-[:HAS_ACTION]->(:Action)
+          - (:Event)-[:LEADS_TO]->(:Outcome)
         """
-        # 1. 컨텍스트 포맷팅
+
+    def _format_context(self, context_records, context_graph):
         records_text = "\n".join(
             [f"- [{r.get('recordId')}] {r.get('content')}" for r in context_records]
         )
-
-        # 그래프 단순화 하여 프롬프트에 주입
-        # (프로토타입용 단순 문자열 변환)
         graph_text = str(context_graph)
+        return records_text, graph_text
 
-        prompt = f"""
+    def _get_reasoning_prompt(self, question, records_text, graph_text):
+        return f"""
         You are an AI assistant helping a user recall their personal memories.
         
         Question: "{question}"
@@ -188,77 +242,8 @@ class LLMService:
         }}
         """
 
-        if not settings.NVIDIA_API_KEY:
-            return {
-                "answer": "This is a mock answer because NVIDIA_API_KEY is missing.",
-                "confidence": 0.0,
-                "reasoning_summary": "Mock reasoning.",
-            }
-
-        headers = {
-            "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-        payload = {
-            "model": "meta/llama-3.1-70b-instruct",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-            "max_tokens": 1024,
-            "stream": False,
-        }
-
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    LLMService.CHAT_URL, json=payload, headers=headers, timeout=30.0
-                )
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-
-                # Cleanup potential markdown ticks
-                clean_content = (
-                    content.replace("```json", "").replace("```", "").strip()
-                )
-                return json.loads(clean_content)
-            except Exception as e:
-                print(f"Error generating answer: {e}")
-                return {
-                    "answer": "Error generating answer",
-                    "confidence": 0.0,
-                    "reasoning_summary": str(e),
-                }
-
-    @staticmethod
-    async def extract_entities(text: str) -> GraphData:
-        """
-        Extract entities (Events, Person, Action, Outcome, Emotion) from text using LLM.
-        Returns a GraphData object.
-        """
-        if not settings.NVIDIA_API_KEY:
-            # Mock data for local testing
-            print("WARNING: NVIDIA_API_KEY not set. Returning mock graph data.")
-            return GraphData(
-                events=[
-                    GraphEvent(
-                        summary="Mock Event",
-                        people=["Mock Person"],
-                        actions=["Mock Action"],
-                        outcomes=["Mock Outcome"],
-                    )
-                ],
-                emotions=["Neutral"],
-            )
-
-        headers = {
-            "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-        # Prompt engineering for JSON extraction
-        prompt = f"""
+    def _get_extraction_prompt(self, text):
+        return f"""
         Analyze the following diary entry and extract structured graph data.
         
         Return ONLY a raw JSON object (no markdown formatting) with the following structure:
@@ -278,38 +263,95 @@ class LLMService:
         "{text}"
         """
 
+    def _mock_reasoning_response(self):
+        return {
+            "answer": "This is a mock answer because API Key is missing.",
+            "confidence": 0.0,
+            "reasoning_summary": "Mock reasoning.",
+        }
+
+    def _mock_graph_data(self):
+        return GraphData(
+            events=[
+                GraphEvent(
+                    summary="Mock Event",
+                    people=["Mock Person"],
+                    actions=["Mock Action"],
+                    outcomes=["Mock Outcome"],
+                )
+            ],
+            emotions=["Neutral"],
+        )
+
+
+class OpenAILLMService(NvidiaLLMService):
+    """
+    OpenAI-based LLM Service.
+    Inherits helpers from NvidiaLLMService since prompts and logic are largely compatible.
+    """
+
+    EMBEDDING_URL = "https://api.openai.com/v1/embeddings"
+    CHAT_URL = "https://api.openai.com/v1/chat/completions"
+
+    async def get_embedding(self, text: str) -> List[float]:
+        if not settings.OPENAI_API_KEY:
+            print("WARNING: OPENAI_API_KEY not set. Returning mock embedding.")
+            return [0.0] * 1536  # OpenAI embeddings are usually 1536 dims
+
+        headers = {
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        }
+
         payload = {
-            "model": "meta/llama-3.1-70b-instruct",  # Adjust model name as needed
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-            "max_tokens": 1024,
-            "stream": False,
+            "input": text,
+            "model": settings.OPENAI_EMBEDDING_MODEL,
         }
 
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
-                    LLMService.CHAT_URL,
+                    self.EMBEDDING_URL,
                     json=payload,
                     headers=headers,
-                    timeout=30.0,
+                    timeout=10.0,
                 )
                 response.raise_for_status()
                 data = response.json()
-                content = data["choices"][0]["message"]["content"]
-
-                # Cleanup potential markdown ticks if LLM performs poorly
-                clean_content = (
-                    content.replace("```json", "").replace("```", "").strip()
-                )
-
-                parsed = json.loads(clean_content)
-                return GraphData(**parsed)
-
+                return data["data"][0]["embedding"]
             except Exception as e:
-                print(f"Error calling NVIDIA Chat API or parsing: {e}")
-                # Fallback on error
-                return GraphData(events=[], emotions=[])
+                print(f"Error calling OpenAI Embeddings: {e}")
+                return [0.0] * 1536
+
+    async def _call_chat_api(self, headers: dict, payload: dict) -> str:
+        # Override to use OpenAI URL and potentially adjust payload if needed
+        # OpenAI payload is compatible with what we constructed in base class,
+        # but we need to ensure the headers use the OpenAI Key.
+
+        # We also need to swap the model name in payload if it's currently hardcoded to Llama
+        payload["model"] = settings.OPENAI_MODEL_NAME
+
+        # Ensure headers are for OpenAI
+        openai_headers = {
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                self.CHAT_URL, json=payload, headers=openai_headers, timeout=30.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
 
 
-llm_service = LLMService()
+def get_llm_service() -> LLMServiceInterface:
+    if settings.LLM_PROVIDER == "openai":
+        return OpenAILLMService()
+    else:
+        return NvidiaLLMService()
+
+
+# Singleton Instance
+llm_service = get_llm_service()

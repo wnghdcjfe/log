@@ -3,7 +3,10 @@ from typing import List
 
 from app.models.schemas.record_req import CreateRecordRequest, CreateRecordResponse
 from app.models.domain.record import Record
+from app.core.config import get_settings
 from app.db.mongo import mongo_db
+
+settings = get_settings()
 from app.db.graph import neo4j_db
 from app.services.llm_service import llm_service
 
@@ -23,7 +26,8 @@ class IngestionService:
             userId=request.userId,
             title=request.title,
             content=request.content,
-            meta={"feel": request.feel, "date": request.date.isoformat()},
+            feel=request.feel,
+            date=request.date.isoformat(),
             createdAt=datetime.now(),
             embedding=embedding,
         )
@@ -32,7 +36,7 @@ class IngestionService:
         if not mongo_db.db:
             raise Exception("Database connection not established")
 
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
         result = await collection.insert_one(record.model_dump(by_alias=True))
 
         # 5. Graph DB를 위한 Cypher 쿼리 생성

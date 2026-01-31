@@ -9,7 +9,8 @@ class Record(BaseModel):
     userId: str
     title: str
     content: str
-    meta: Dict[str, Any]  # feel, date for hybrid search
+    feel: List[str]
+    date: str  # YYYY-MM-DD
 
     # Metadata
     createdAt: datetime = Field(default_factory=datetime.now)
