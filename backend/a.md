@@ -1,8 +1,3 @@
-아래는 PRD A의 요구사항을 **“핵심 기능(큰 덩어리) → 그걸 만들기 위해 필요한 상세 개발 요구사항(구현 항목)”** 형태로 다시 풀어쓴 것입니다.
-즉, FR 문장을 그대로 반복하지 않고, **개발해야 할 실제 기능/모듈/데이터/검증 포인트**로 전개합니다.
-
----
-
 # PRD A 요구사항 처리안 
 
 ## 아키텍처
@@ -15,7 +10,6 @@
   ↓
 [Reasoning Engine] ── 추론 경로 생성
 ```
-
 
 ## 핵심 기능 1) 개인 기록 입력/생성 파이프라인
 
@@ -39,7 +33,7 @@
 
 3. **감정 자동 추출 모듈**
 
-   * 입력 content → 감정 라벨/점수 산출
+   * 입력 content → llm을 통한 감정 라벨/점수 산출
    * 추출 결과는 record metadata로 저장
    * 실패 시 graceful fallback(unknown)
 
@@ -65,8 +59,8 @@
 
 1. **임베딩 생성 파이프라인**
 
-   * record content → embedding 벡터 생성
-   * 배치/실시간 선택 가능(초기엔 실시간 권장)
+   * record content → llm을 통한 embedding 벡터 생성
+   * 실시간으로 embedding 벡터 생성
    * embedding 모델 버전 필드 저장(`embedModelVersion`)
 
 2. **VectorDB 저장 구조**
@@ -77,7 +71,7 @@
 
 3. **의미 검색 API**
 
-   * `POST /search` 또는 `POST /query`
+   * `POST /search`
    * 입력: `text`, 옵션: `since/until`, `topK`, `timeWeight`
    * 출력: `recordId[] + score + snippet`
 
@@ -117,7 +111,7 @@
 2. **엔티티/관계 추출(IE) 모듈**
 
    * record content → event/person/action/outcome/emotion 추출
-   * 중복 통합(같은 인물 이름, 같은 감정 라벨 등) 규칙 필요:
+   * 중복 통합(같은 인물 이름, 같은 감정 라벨 등) ㅑ 필요:
 
      * canonical name/alias 관리
      * 동일성 키(예: `userId + normalizedName + type`)
