@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     NEO4J_USER: str = "neo4j"
     NEO4J_PASSWORD: str = "password"
 
+    # LLM Settings
+    LLM_PROVIDER: str = "openai"  # "openai" or "nvidia"
+
+    # OpenAI
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL_NAME: str = "gpt-4o"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
     # NVIDIA NeMo (LLM)
     NVIDIA_API_KEY: str = ""
 
