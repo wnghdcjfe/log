@@ -27,12 +27,18 @@ class ReasoningService:
         )
 
         record_ids = [res["recordId"] for res in vector_results]
+        print(f"[DEBUG] Vector search found {len(vector_results)} records")
+        print(f"[DEBUG] Record IDs: {record_ids}")
 
         # 3. Graph Retrieval (Context Subgraph)
         graph_context = await neo4j_db.get_context_subgraph(
             user_id=request.userId,
             record_ids=record_ids,
             hop=1,  # Start with 1-hop for speed
+        )
+
+        print(
+            f"[DEBUG] Graph context - Nodes: {len(graph_context.get('nodes', []))}, Edges: {len(graph_context.get('edges', []))}"
         )
 
         # 4. LLM Reasoning

@@ -21,7 +21,7 @@ class IngestionService:
         # 2. 임베딩 생성
         embedding = await llm_service.get_embedding(combined_text)
 
-        # 3. 도메인 모델 생성
+        # 3. 도메인 모델 생성 (UUID recordId 자동 생성)
         record = Record(
             userId=request.userId,
             title=request.title,
@@ -44,7 +44,7 @@ class IngestionService:
         cypher_query = await llm_service.generate_graph_cypher(
             text=combined_text,
             user_id=request.userId,
-            record_id=str(result.inserted_id),
+            record_id=record.recordId,  # UUID recordId 사용
             date=request.date.isoformat(),
         )
 
@@ -52,7 +52,8 @@ class IngestionService:
         if cypher_query:
             await neo4j_db.execute_cypher(cypher_query)
 
-        return CreateRecordResponse(recordId=str(result.inserted_id))
+        # 7. UUID recordId 반환 (MongoDB ObjectId가 아님)
+        return CreateRecordResponse(recordId=record.recordId)
 
 
 ingestion_service = IngestionService()

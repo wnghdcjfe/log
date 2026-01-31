@@ -99,9 +99,9 @@ class Neo4jDB:
         async with cls.driver.session() as session:
             try:
                 result = await session.run(query, params)
-                records = await result.list()
 
-                for record in records:
+                # AsyncResult를 리스트로 변환
+                async for record in result:
                     path = record.get("path")
                     if path:
                         for node in path.nodes:

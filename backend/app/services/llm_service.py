@@ -344,6 +344,58 @@ class OpenAILLMService(NvidiaLLMService):
             data = response.json()
             return data["choices"][0]["message"]["content"]
 
+    async def generate_answer_with_reasoning(
+        self, question: str, context_records: List[dict], context_graph: dict
+    ) -> dict:
+        if not settings.OPENAI_API_KEY:
+            return self._mock_reasoning_response()
+
+        records_text, graph_text = self._format_context(context_records, context_graph)
+        prompt = self._get_reasoning_prompt(question, records_text, graph_text)
+
+        payload = {
+            "model": settings.OPENAI_MODEL_NAME,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        try:
+            content = await self._call_chat_api({}, payload)
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            return json.loads(clean_content)
+        except Exception as e:
+            print(f"Error generating answer: {e}")
+            return {
+                "answer": "Error generating answer",
+                "confidence": 0.0,
+                "reasoning_summary": str(e),
+            }
+
+    async def extract_entities(self, text: str) -> GraphData:
+        if not settings.OPENAI_API_KEY:
+            return self._mock_graph_data()
+
+        prompt = self._get_extraction_prompt(text)
+
+        payload = {
+            "model": settings.OPENAI_MODEL_NAME,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        try:
+            content = await self._call_chat_api({}, payload)
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(clean_content)
+            return GraphData(**parsed)
+        except Exception as e:
+            print(f"Entities extraction error: {e}")
+            return GraphData(events=[], emotions=[])
+
 
 def get_llm_service() -> LLMServiceInterface:
     if settings.LLM_PROVIDER == "openai":
