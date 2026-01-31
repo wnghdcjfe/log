@@ -24,6 +24,7 @@ export interface RecordNode {
   label: string
   timestamp: string // ISO date
   emotion?: EmotionType
+  feel?: string[] // All emotions/feelings from the diary
   people?: string[]
   originalText: string
   importance?: number // 1-10, 중요도

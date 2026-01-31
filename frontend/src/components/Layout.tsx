@@ -25,9 +25,13 @@ export function Layout() {
         <div className="flex items-center justify-between gap-4">
           <Link
             to="/search"
-            className="font-bold text-lg tracking-tight text-[#8b6355]"
+            className="flex items-center gap-2 group"
           >
-            OUTBRAIN
+            <img
+              src="/logo2.png"
+              alt="OUTBRAIN Logo"
+              className="h-8 w-auto transition-transform group-hover:scale-105"
+            /> 
           </Link>
 
           <nav className="flex items-center gap-1 flex-wrap">

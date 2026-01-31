@@ -42,7 +42,6 @@ class VectorDB:
                 "$vectorSearch": {
                     "index": "vector_index",  # Ensure this index name matches Atlas config
                     "path": "embedding",
-                    "path": "embedding",
                     "filter": {"userId": {"$eq": user_id}},
                     "queryVector": query_vector,
                     "numCandidates": top_k * 10,
@@ -51,9 +50,10 @@ class VectorDB:
             },
             {
                 "$project": {
-                    "_id": 0,
+                    "_id": 1,
                     "recordId": 1,
                     "content": 1,
+                    "title": 1,
                     "score": {"$meta": "vectorSearchScore"},
                 }
             },

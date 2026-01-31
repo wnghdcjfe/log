@@ -20,6 +20,7 @@ function toRecordNode(d: ApiDiary): RecordNode {
     label: d.title,
     timestamp: date.includes('T') ? date : `${dateOnly}T12:00:00`,
     emotion: (d.feel?.[0] ?? undefined) as RecordNode['emotion'],
+    feel: d.feel ?? [], // Store all feelings
     people: [],
     originalText: d.content,
     importance: 8,

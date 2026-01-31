@@ -56,7 +56,7 @@ function toDiaryItems(nodes: RecordNode[]): DiaryItem[] {
       content: n.originalText.slice(0, 120) + (n.originalText.length > 120 ? '...' : ''),
       fullContent: n.originalText,
       keywords: [
-        ...(n.emotion ? [n.emotion] : []),
+        ...(n.feel ?? []), // Use all feelings from the diary
         ...(n.people ?? []),
       ],
     }))

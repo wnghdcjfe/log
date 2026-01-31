@@ -62,8 +62,8 @@ export function KeywordGraph({
       .map((n) => ({ source: keywordId, target: n.id }))
 
     const rect = svgEl.getBoundingClientRect()
-    const w = Math.max(520, Math.floor(rect.width))
-    const h = 520
+    const w = Math.max(720, Math.floor(rect.width))
+    const h = 720
 
     const svg = d3.select(svgEl)
     svg.selectAll('*').remove()
@@ -98,7 +98,7 @@ export function KeywordGraph({
       .force('center', d3.forceCenter(w / 2, h / 2))
       .force(
         'collide',
-        d3.forceCollide<GraphNode>().radius((d) => (d.kind === 'keyword' ? 46 : 62))
+        d3.forceCollide<GraphNode>().radius((d) => (d.kind === 'keyword' ? 85 : 72))
       )
 
     const link = g
@@ -121,7 +121,7 @@ export function KeywordGraph({
 
     node
       .append('circle')
-      .attr('r', (d) => (d.kind === 'keyword' ? 36 : 44))
+      .attr('r', (d) => (d.kind === 'keyword' ? 75 : 60))
       .attr('fill', (d) =>
         d.kind === 'keyword' ? '#8b6355' : d.match ? '#FFB6A3' : '#FFDAB9'
       )
@@ -132,30 +132,44 @@ export function KeywordGraph({
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
       .attr('fill', '#fff')
-      .attr('font-size', (d) => (d.kind === 'keyword' ? 14 : 11))
+      .attr('font-size', (d) => (d.kind === 'keyword' ? 12 : 11))
       .attr('font-weight', 700)
       .each(function (this: SVGTextElement, d) {
         const lines = String(d.label).split('\n')
         const text = d3.select(this)
-        const dy0 = -(lines.length - 1) * 7
-        lines.slice(0, 3).forEach((line, i) => {
+        const maxChars = d.kind === 'keyword' ? 20 : 14
+        const lineHeight = d.kind === 'keyword' ? 15 : 14
+        const dy0 = -(lines.length - 1) * (lineHeight / 2)
+        lines.slice(0, 4).forEach((line, i) => {
           text
             .append('tspan')
             .attr('x', 0)
-            .attr('dy', i === 0 ? dy0 : 14)
-            .text(line.length > 18 ? line.slice(0, 18) + '…' : line)
+            .attr('dy', i === 0 ? dy0 : lineHeight)
+            .text(line.length > maxChars ? line.slice(0, maxChars) + '…' : line)
         })
       })
+
+    // Track drag state to prevent click events during drag
+    let isDragging = false
+    let dragStartPos = { x: 0, y: 0 }
 
     node.call(
       d3
         .drag<SVGGElement, GraphNode>()
         .on('start', (ev, d) => {
-          if (!ev.active) sim.alphaTarget(0.25).restart()
+          isDragging = false
+          dragStartPos = { x: ev.x, y: ev.y }
+          if (!ev.active) sim.alphaTarget(0.3).restart()
           d.fx = d.x
           d.fy = d.y
         })
         .on('drag', (ev, d) => {
+          // Check if moved more than 3 pixels to mark as dragging
+          const dx = Math.abs(ev.x - dragStartPos.x)
+          const dy = Math.abs(ev.y - dragStartPos.y)
+          if (dx > 3 || dy > 3) {
+            isDragging = true
+          }
           d.fx = ev.x
           d.fy = ev.y
         })
@@ -163,6 +177,10 @@ export function KeywordGraph({
           if (!ev.active) sim.alphaTarget(0)
           d.fx = undefined
           d.fy = undefined
+          // Reset drag flag after a short delay
+          setTimeout(() => {
+            isDragging = false
+          }, 100)
         })
     )
 
@@ -182,6 +200,10 @@ export function KeywordGraph({
       })
       .on('click', (ev, d) => {
         ev.stopPropagation()
+        // Ignore click if it was actually a drag
+        if (isDragging) {
+          return
+        }
         if (d.kind === 'diary' && d.diary) {
           onNodeSelect(d.diary)
         } else {
@@ -210,7 +232,7 @@ export function KeywordGraph({
       <svg
         ref={svgRef}
         className="w-full block"
-        style={{ height: 520 }}
+        style={{ height: 720 }}
         aria-label="keyword graph"
       />
       <div

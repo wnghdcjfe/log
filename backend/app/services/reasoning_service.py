@@ -26,9 +26,10 @@ class ReasoningService:
             query_vector=query_embedding, user_id=request.userId, top_k=5
         )
 
-        record_ids = [res["recordId"] for res in vector_results]
+        # Use MongoDB _id for frontend compatibility
+        record_ids = [str(res["_id"]) for res in vector_results if "_id" in res]
         print(f"[DEBUG] Vector search found {len(vector_results)} records")
-        print(f"[DEBUG] Record IDs: {record_ids}")
+        print(f"[DEBUG] Record IDs (MongoDB _id): {record_ids}")
 
         # 3. Graph Retrieval (Context Subgraph)
         graph_context = await neo4j_db.get_context_subgraph(
