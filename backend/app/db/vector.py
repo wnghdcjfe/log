@@ -22,7 +22,7 @@ class VectorDB:
         if not mongo_db.db:
             raise Exception("Database not connected")
 
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
         await collection.update_one(
             {"recordId": record_id}, {"$set": {"embedding": vector}}
         )
@@ -35,7 +35,7 @@ class VectorDB:
         if not mongo_db.db:
             raise Exception("Database not connected")
 
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
 
         pipeline = [
             {
