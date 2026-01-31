@@ -12,7 +12,7 @@ class IngestionService:
     @staticmethod
     async def create_record(request: CreateRecordRequest) -> CreateRecordResponse:
         # 1. Prepare Content for Embedding (combine title + content + feel)
-        combined_text = f"{request.title} {request.content} {' '.join(request.feel)}"
+        combined_text = f"{request.title} {request.content}"
 
         # 2. Generate Embedding
         embedding = await llm_service.get_embedding(combined_text)

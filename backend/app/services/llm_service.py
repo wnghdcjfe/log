@@ -13,7 +13,7 @@ class LLMService:
 
     # Example Endpoint for NVIDIA Embeddings (Replace with actual endpoint if different)
     # Using a common placeholder endpoint for NVIDIA NIM
-    EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings"
+    EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings"  # TODO: Replace with actual endpoint
 
     @staticmethod
     async def get_embedding(text: str) -> List[float]:
