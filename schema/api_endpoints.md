@@ -16,23 +16,7 @@
 *   **출력 (Output)**:
     *   `recordId` (string): 생성된 기록의 고유 ID.
 
-## 2. 검색 및 컨텍스트 (Search & Context)
-
-### 의미 검색 (Semantic Search)
-*   **엔드포인트**: `POST /search`
-*   **설명**: 기록에 대한 의미 검색(Semantic Search)을 수행하고 결과를 바탕으로 컨텍스트 그래프(서브그래프)를 생성합니다. 이 세션은 후속 질문에 사용될 수 있습니다.
-*   **입력 (Input)**:
-    *   `text` (string, 필수): 검색 쿼리.
-    *   `since` (date, 선택): 시작 날짜 필터.
-    *   `until` (date, 선택): 종료 날짜 필터.
-    *   `topK` (int, 선택): 반환할 결과 개수.
-    *   `timeWeight` (float, 선택): 점수 산정 시 최신성 가중치.
-*   **출력 (Output)**:
-    *   `searchSessionId` (string): 검색 세션(컨텍스트) ID.
-    *   `contextGraph` (object): `directNodes`, `nodes`, `edges`, `sourceRecords`를 포함하는 구성된 서브그래프.
-    *   `results` (array): `recordId`, `score`, `snippet` 목록.
-
-## 3. 타임라인 및 시각화 (Timeline & Visualization)
+## 2. 타임라인 및 시각화 (Timeline & Visualization)
 
 ### 기록 타임라인 조회 (Get Record Timeline)
 *   **엔드포인트**: `GET /records/timeline`
@@ -43,16 +27,7 @@
 *   **출력 (Output)**:
     *   시간 순으로 정렬된 기록 목록.
 
-### 그래프 타임라인 조회 (Get Graph Timeline)
-*   **엔드포인트**: `GET /graph/timeline`
-*   **설명**: 특정 기준 날짜를 중심으로 그래프 데이터(Event/Person 등)의 요약을 조회합니다.
-*   **입력 (Query Params)**:
-    *   `anchorDate` (date): 기준 날짜.
-    *   `window` (string/int): 시간 윈도우 크기.
-*   **출력 (Output)**:
-    *   지정된 기간의 그래프 요약 데이터.
-
-## 4. 추론 및 QA (Reasoning & QA)
+## 3. 추론 및 QA (Reasoning & QA)
 
 ### 질문하기 (Ask Question)
 *   **엔드포인트**: `POST /question`
