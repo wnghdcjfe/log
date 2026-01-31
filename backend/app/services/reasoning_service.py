@@ -12,7 +12,7 @@ class ReasoningService:
         """
         Orchestrate the RAG process:
         1. Embed question
-        2. Hybrid Search (Vector + Text with RRF)
+        2. Hybrid Search (Vector + Text with RRF) + Time Decay
         3. Reranking (LLM-based relevance scoring)
         4. Graph Traversal (Context Expansion around records)
         5. LLM Reasoning (Synthesize answer)
@@ -21,9 +21,10 @@ class ReasoningService:
         # 1. Embed Question
         query_embedding = await llm_service.get_embedding(request.text)
 
-        # 2. Hybrid Search (Vector + Text)
-        # 벡터 검색(의미 기반)과 텍스트 검색(키워드 기반)을 결합하여 검색 품질 향상
-        # Reranking을 위해 더 많은 후보를 가져옴
+        # 2. Hybrid Search (Vector + Text) with Time Decay
+        # - 벡터 검색(의미 기반)과 텍스트 검색(키워드 기반)을 RRF로 결합
+        # - 시간 감쇠(Time Decay)로 최신 기록에 가중치 부여
+        # - Reranking을 위해 더 많은 후보를 가져옴
         initial_results = await vector_db.search(
             query_vector=query_embedding,
             user_id=request.userId,
@@ -32,9 +33,11 @@ class ReasoningService:
             use_hybrid=True,
             vector_weight=0.5,
             text_weight=0.5,
+            use_time_decay=True,  # 최신 기록 우선
+            time_decay_weight=0.3,  # 시간 가중치 30%
         )
 
-        print(f"[DEBUG] Hybrid search found {len(initial_results)} candidates")
+        print(f"[DEBUG] Hybrid search (with time decay) found {len(initial_results)} candidates")
 
         # 3. Reranking (LLM-based)
         # 초기 검색 결과를 질문과의 관련성에 따라 재순위화
