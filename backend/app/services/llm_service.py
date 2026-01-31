@@ -219,7 +219,8 @@ class NvidiaLLMService(LLMServiceInterface):
     def _get_reasoning_prompt(self, question, records_text, graph_text):
         return f"""
         You are an AI assistant helping a user recall their personal memories.
-        
+        All responses must be in Korean.
+
         Question: "{question}"
         
         Here are some relevant diary records (Vector Memory):
@@ -231,13 +232,13 @@ class NvidiaLLMService(LLMServiceInterface):
         Task:
         1. Answer the user's question naturally, based ONLY on the provided context.
         2. If the answer is not in the context, say so.
-        3. Provide a reasoning path explaining how you connected the dots.
+        3. Provide a reasoning path explaining how you connected the dots in Korean.
 
         Output Format (JSON):
         {{
-            "answer": "Your natural language response...",
+            "answer": "한국어 답변...",
             "confidence": 0.9,
-            "reasoning_summary": "I found record X which mentions Y, and the graph shows Y is connected to Z..."
+            "reasoning_summary": "답변을 도출하기까지의 논리적인 과정을 한국어로 상세히 설명..."
         }}
         """
 
