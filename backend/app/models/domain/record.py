@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 import uuid
 
@@ -8,9 +8,9 @@ class Record(BaseModel):
     recordId: str = Field(default_factory=lambda: str(uuid.uuid4()))
     userId: str
     title: str
-    date: date
+    title: str
     content: str
-    feel: List[str]
+    meta: Dict[str, Any]  # feel, date for hybrid search
 
     # Metadata
     createdAt: datetime = Field(default_factory=datetime.now)

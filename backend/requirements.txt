@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+pydantic-settings
+motor
+neo4j
+httpx
+pytest
+pytest-asyncio
