@@ -101,7 +101,7 @@ async def test_extract_entities_success(mock_settings):
     service = NvidiaLLMService()
 
     mock_json = """{
-        "events": [{"summary": "Event1", "people": [], "actions": [], "outcomes": []}], 
+        "events": [{"summary": "Event1", "people": [], "actions": [], "outcomes": []}],
         "emotions": ["Happy"]
     }"""
     mock_api_response = {"choices": [{"message": {"content": mock_json}}]}
@@ -115,3 +115,109 @@ async def test_extract_entities_success(mock_settings):
         assert len(graph_data.events) == 1
         assert graph_data.events[0].summary == "Event1"
         assert "Happy" in graph_data.emotions
+
+
+# ============== Rerank 테스트 ==============
+
+@pytest.mark.asyncio
+async def test_rerank_nvidia_success(mock_settings):
+    """NVIDIA 서비스의 rerank가 정상 동작하는지 테스트"""
+    service = NvidiaLLMService()
+
+    documents = [
+        {"content": "Document 1 about cats", "title": "Cats"},
+        {"content": "Document 2 about dogs", "title": "Dogs"},
+        {"content": "Document 3 about birds", "title": "Birds"},
+    ]
+
+    mock_json = '{"scores": [0.9, 0.3, 0.6]}'
+    mock_api_response = {"choices": [{"message": {"content": mock_json}}]}
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = MagicMock(return_value=mock_api_response)
+
+        result = await service.rerank("What about cats?", documents, top_k=2)
+
+        # 점수에 따라 정렬되어야 함
+        assert len(result) == 2  # top_k=2
+        assert result[0]["title"] == "Cats"  # 0.9점으로 1위
+        assert result[1]["title"] == "Birds"  # 0.6점으로 2위
+        assert result[0]["relevance_score"] == 0.9
+
+
+@pytest.mark.asyncio
+async def test_rerank_openai_success(mock_settings):
+    """OpenAI 서비스의 rerank가 정상 동작하는지 테스트"""
+    service = OpenAILLMService()
+
+    documents = [
+        {"content": "Old memory about school", "title": "School"},
+        {"content": "Recent memory about work", "title": "Work"},
+    ]
+
+    mock_json = '{"scores": [0.4, 0.8]}'
+    mock_api_response = {"choices": [{"message": {"content": mock_json}}]}
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = MagicMock(return_value=mock_api_response)
+
+        result = await service.rerank("Tell me about work", documents, top_k=2)
+
+        assert len(result) == 2
+        assert result[0]["title"] == "Work"  # 0.8점으로 1위
+        assert result[0]["relevance_score"] == 0.8
+
+
+@pytest.mark.asyncio
+async def test_rerank_empty_documents():
+    """빈 문서 리스트에 대한 rerank 테스트"""
+    service = NvidiaLLMService()
+
+    result = await service.rerank("Any question", [], top_k=5)
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_rerank_missing_api_key():
+    """API 키가 없을 때 원본 순서 반환 테스트"""
+    service = NvidiaLLMService()
+
+    documents = [
+        {"content": "Doc 1", "title": "First"},
+        {"content": "Doc 2", "title": "Second"},
+    ]
+
+    with patch("app.services.llm_service.settings") as mock_settings:
+        mock_settings.NVIDIA_API_KEY = ""
+
+        result = await service.rerank("Question", documents, top_k=2)
+
+        # API 키 없으면 원본 순서 반환
+        assert len(result) == 2
+        assert result[0]["title"] == "First"
+
+
+@pytest.mark.asyncio
+async def test_rerank_parsing_error(mock_settings):
+    """JSON 파싱 에러 시 원본 순서 반환 테스트"""
+    service = NvidiaLLMService()
+
+    documents = [
+        {"content": "Doc 1", "title": "First"},
+        {"content": "Doc 2", "title": "Second"},
+    ]
+
+    mock_api_response = {"choices": [{"message": {"content": "Invalid JSON"}}]}
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = MagicMock(return_value=mock_api_response)
+
+        result = await service.rerank("Question", documents, top_k=2)
+
+        # 에러 시 원본 순서 반환
+        assert len(result) == 2
+        assert result[0]["title"] == "First"
