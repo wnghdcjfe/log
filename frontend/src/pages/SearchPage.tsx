@@ -127,7 +127,7 @@ export function SearchPage() {
                 className="border rounded-xl overflow-hidden p-4 min-h-[520px]"
                 style={{ borderColor: '#FFDAB9', backgroundColor: '#FFF9F5' }}
               >
-                <h3 className="font-serif font-semibold text-[#e89580] mb-2">상세</h3>
+                <h3 className=" font-semibold text-[#e89580] mb-2">상세</h3>
                 <GraphDetailPanel
                   node={selectedNode}
                   onViewOriginal={() => setShowOriginal(true)}

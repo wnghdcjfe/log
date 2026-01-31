@@ -25,7 +25,7 @@ export function Timeline({
         className="px-4 py-3 border-b"
         style={{ borderColor: '#FFDAB9', backgroundColor: 'rgba(255, 218, 185, 0.3)' }}
       >
-        <h3 className="font-serif font-semibold text-[#e89580] flex items-center gap-2">
+        <h3 className=" font-semibold text-[#e89580] flex items-center gap-2">
           <span className="w-1 h-4 rounded" style={{ backgroundColor: '#FFB6A3' }} />
           타임라인
         </h3>

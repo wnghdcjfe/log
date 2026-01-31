@@ -22,7 +22,7 @@ export function GraphDetailPanel({ node, onViewOriginal }: GraphDetailPanelProps
 
   return (
     <div>
-      <div className="text-base font-serif font-bold leading-snug mt-1.5 text-[#e89580]">
+      <div className="text-base  font-bold leading-snug mt-1.5 text-[#e89580]">
         {node.label}
       </div>
       <div className="mt-1.5 text-[#8b6355]/80 text-sm">

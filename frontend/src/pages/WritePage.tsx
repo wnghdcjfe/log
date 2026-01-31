@@ -5,8 +5,8 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterv
 import { ko } from 'date-fns/locale'
 
 const MOODS = [
-  { id: 'radiant', label: '환함', icon: 'sentiment_very_satisfied' },
-  { id: 'calm', label: '차분', icon: 'sentiment_satisfied' },
+  { id: 'radiant', label: '기쁨', icon: 'sentiment_very_satisfied' },
+  { id: 'calm', label: '평온', icon: 'sentiment_satisfied' },
   { id: 'neutral', label: '보통', icon: 'sentiment_neutral' },
   { id: 'tired', label: '피곤', icon: 'sentiment_dissatisfied' },
   { id: 'sad', label: '슬픔', icon: 'mood_bad' },
@@ -116,7 +116,7 @@ export function WritePage() {
           {/* Page Heading */}
           <div className="flex flex-wrap justify-between items-end gap-4 p-4 mb-6">
             <div className="flex min-w-72 flex-col gap-2">
-              <h1 className="text-[#181210] text-3xl md:text-4xl font-black leading-tight tracking-tight font-serif">
+              <h1 className="text-[#181210] text-3xl md:text-4xl font-black leading-tight tracking-tight ">
                 새 일기 쓰기
               </h1>
               <p className="text-[#8d675e] text-base font-normal">생각을 페이지에 흘려보내세요.</p>

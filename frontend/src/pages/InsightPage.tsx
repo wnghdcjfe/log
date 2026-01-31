@@ -326,7 +326,7 @@ export function InsightPage() {
     <div className="flex-1 overflow-y-auto bg-[#FFF9F5]"> 
       <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-800 font-serif">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-800 ">
             일기를 들여보다.
           </h2>
           <p className="text-slate-500 text-sm">
@@ -342,7 +342,7 @@ export function InsightPage() {
               <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">전체 일기</p>
               <span className="material-symbols-outlined text-[#FFB6A3]">history_edu</span>
             </div>
-            <p className="text-3xl font-bold font-serif text-slate-800">{allDiaries.length}</p>
+            <p className="text-3xl font-bold  text-slate-800">{allDiaries.length}</p>
             <p className="text-slate-400 text-[10px] mt-2 italic">
               {oldestDate ? `${format(parseISO(oldestDate), 'yyyy년 M월', { locale: ko })}부터 기록 중` : ''}
             </p>
@@ -352,7 +352,7 @@ export function InsightPage() {
               <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">연속 기록</p>
               <span className="material-symbols-outlined text-[#FFB6A3]">local_fire_department</span>
             </div>
-            <p className="text-3xl font-bold font-serif text-slate-800">{streak}일</p>
+            <p className="text-3xl font-bold  text-slate-800">{streak}일</p>
             <p className="text-slate-400 text-[10px] mt-2 italic">오늘 포함 연속 기록일</p>
           </div>
           <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)]">
@@ -360,7 +360,7 @@ export function InsightPage() {
               <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">주 감정</p>
               <span className="material-symbols-outlined text-[#FFB6A3]">mood</span>
             </div>
-            <p className="text-3xl font-bold font-serif text-slate-800">{topEmotion}</p>
+            <p className="text-3xl font-bold  text-slate-800">{topEmotion}</p>
             <p className="text-slate-400 text-[10px] mt-2 italic">가장 많이 기록된 감정</p>
           </div>
         </div>
@@ -536,7 +536,7 @@ export function InsightPage() {
                         </span>
                       </div>
                       <div className="flex flex-col gap-1 mb-3">
-                        <span className="text-lg font-bold font-serif text-[#FFB6A3]">
+                        <span className="text-lg font-bold  text-[#FFB6A3]">
                           {format(dateObj, 'yyyy년 M월 d일', { locale: ko })}
                         </span>
                         <span className="text-xs text-slate-500">{dayName}</span>

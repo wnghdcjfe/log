@@ -66,7 +66,7 @@ export function GraphPage() {
         style={{ background: 'linear-gradient(135deg, #FFDAB9 0%, #FFB6A3 100%)' }}
       >
         <div className="flex items-center justify-between gap-4 mb-4">
-          <h1 className="font-serif font-bold text-lg tracking-tight text-[#8b6355]">
+          <h1 className=" font-bold text-lg tracking-tight text-[#8b6355]">
             OUTBRAIN
           </h1>
           <div className="flex items-center gap-4">
@@ -147,7 +147,7 @@ export function GraphPage() {
                 className="border rounded-xl overflow-hidden p-4 min-h-[520px]"
                 style={{ borderColor: '#FFDAB9', backgroundColor: '#FFF9F5' }}
               >
-                <h3 className="font-serif font-semibold text-[#e89580] mb-2">상세</h3>
+                <h3 className=" font-semibold text-[#e89580] mb-2">상세</h3>
                 <GraphDetailPanel
                   node={selectedNode}
                   onViewOriginal={() => setShowOriginal(true)}

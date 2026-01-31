@@ -17,7 +17,7 @@ export function Layout() {
         style={{ background: 'linear-gradient(135deg, #FFDAB9 0%, #FFB6A3 100%)' }}
       >
         <div className="flex items-center justify-between gap-4">
-          <Link to="/search" className="font-serif font-bold text-lg tracking-tight text-[#8b6355]">
+          <Link to="/search" className=" font-bold text-lg tracking-tight text-[#8b6355]">
             OUTBRAIN
           </Link>
           <nav className="flex items-center gap-1 flex-wrap">

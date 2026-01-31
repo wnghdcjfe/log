@@ -21,7 +21,7 @@ export function QuestionUI({
         className="px-4 py-3 border-b"
         style={{ borderColor: '#FFDAB9', backgroundColor: 'rgba(255, 218, 185, 0.3)' }}
       >
-        <h3 className="font-serif font-semibold text-[#e89580] flex items-center gap-2">
+        <h3 className=" font-semibold text-[#e89580] flex items-center gap-2">
           <MessageCircle className="w-4 h-4" />
           질문 결과
         </h3>

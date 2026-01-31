@@ -89,7 +89,7 @@ export function ReadPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <time
-                          className="text-sm font-serif text-[#e89580]"
+                          className="text-sm  text-[#e89580]"
                         >
                           {format(parseISO(d.date), 'yyyy년 M월 d일', { locale: ko })}
                         </time>
@@ -102,7 +102,7 @@ export function ReadPage() {
                           </span>
                         )}
                       </div>
-                      <h3 className="font-serif font-bold text-[#8b6355] truncate">{d.title}</h3>
+                      <h3 className=" font-bold text-[#8b6355] truncate">{d.title}</h3>
                       <p
                         className={`mt-2 text-sm text-[#8b6355]/80 leading-relaxed whitespace-pre-wrap ${
                           isExpanded ? '' : 'line-clamp-2'

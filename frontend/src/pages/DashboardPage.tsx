@@ -209,7 +209,7 @@ export function DashboardPage() {
             ← 그래프 탐색으로 돌아가기
           </Link>
           <h1
-            className="font-serif text-5xl font-light tracking-wide mb-3"
+            className=" text-5xl font-light tracking-wide mb-3"
             style={{
               background: 'linear-gradient(135deg, #FFDAB9, #FFB6A3)',
               WebkitBackgroundClip: 'text',
@@ -276,7 +276,7 @@ export function DashboardPage() {
                 boxShadow: '0 10px 30px rgba(255, 182, 163, 0.2)',
               }}
             >
-              <div className="font-serif text-4xl font-bold text-[#e89580] mb-1">{val}</div>
+              <div className=" text-4xl font-bold text-[#e89580] mb-1">{val}</div>
               <div className="text-[#8b6355] text-xs uppercase tracking-wider">{label}</div>
             </div>
           ))}
@@ -287,7 +287,7 @@ export function DashboardPage() {
             className="rounded-[20px] p-8 hover:-translate-y-1 transition-all"
             style={{ backgroundColor: '#FFF9F5', border: '1px solid #FFDAB9', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
           >
-            <h3 className="font-serif text-2xl mb-5 text-[#e89580] font-normal">
+            <h3 className=" text-2xl mb-5 text-[#e89580] font-normal">
               월별 일기 작성 빈도
             </h3>
             <div className="h-[240px]">
@@ -298,7 +298,7 @@ export function DashboardPage() {
             className="rounded-[20px] p-8 hover:-translate-y-1 transition-all"
             style={{ backgroundColor: '#FFF9F5', border: '1px solid #FFDAB9', boxShadow: '0 10px 40px rgba(0,0,0,0.06)' }}
           >
-            <h3 className="font-serif text-2xl mb-5 text-[#e89580] font-normal">
+            <h3 className=" text-2xl mb-5 text-[#e89580] font-normal">
               감정 분포
             </h3>
             <div className="h-[240px]">
@@ -311,7 +311,7 @@ export function DashboardPage() {
           className="rounded-[20px] p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]"
           style={{ backgroundColor: '#FFF9F5', border: '1px solid #FFDAB9' }}
         >
-          <h3 className="font-serif text-2xl text-[#e89580] font-normal mb-8">
+          <h3 className=" text-2xl text-[#e89580] font-normal mb-8">
             주요 일기 타임라인
           </h3>
           <div className="relative py-8 min-h-[200px]">
@@ -345,7 +345,7 @@ export function DashboardPage() {
                       boxShadow: '0 8px 24px rgba(255, 182, 163, 0.15)',
                     }}
                   >
-                    <div className="font-serif text-xl text-[#e89580] font-semibold mb-2">
+                    <div className=" text-xl text-[#e89580] font-semibold mb-2">
                       {format(parseISO(diary.date), 'yyyy년 M월 d일', { locale: ko })}
                     </div>
                     <div className="text-lg font-medium mb-2 text-[#8b6355]">{diary.title}</div>
