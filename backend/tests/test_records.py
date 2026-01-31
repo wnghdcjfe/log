@@ -1,5 +1,5 @@
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.services.ingestion_service import ingestion_service
 from app.models.schemas.record_req import CreateRecordResponse
@@ -14,7 +14,9 @@ async def mock_create_record(request):
 async def test_create_record(monkeypatch):
     monkeypatch.setattr(ingestion_service, "create_record", mock_create_record)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         payload = {
             "title": "My Diary",
             "content": "Today was a good day.",
@@ -31,7 +33,9 @@ async def test_create_record(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_record_invalid_input(monkeypatch):
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         payload = {
             "title": "My Diary",
             # Missing content
