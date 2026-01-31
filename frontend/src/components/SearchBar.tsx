@@ -15,7 +15,7 @@ export function SearchBar({
   onChange,
   onSearch,
   placeholder = '키워드 또는 자연어로 검색... (예: 여자친구, 왜 그때 분위기가 안 좋았지)',
-  suggestions = ['퇴사', '태움', '번아웃', '울었어', '왜 그때 분위기가 안 좋았지'],
+  suggestions = ['내가 왜 기분이 나쁠까?', '우울', '번아웃', '왜 여자친구 기분이 안좋을까?', '왜 그때 분위기가 안 좋았지'],
   loading = false,
 }: SearchBarProps) {
   const [draft, setDraft] = useState(value)
