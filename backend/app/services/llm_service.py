@@ -9,19 +9,19 @@ settings = get_settings()
 
 class LLMService:
     """
-    Service to interact with NVIDIA NeMo / NVIDIA NIM APIs.
-    Currently focuses on Embedding Generation.
+    NVIDIA NeMo / NVIDIA NIM API와 상호작용하는 서비스입니다.
+    현재 임베딩 생성 및 채팅(LLM) 기능을 제공합니다.
     """
 
-    # Example Endpoint for NVIDIA Embeddings (Replace with actual endpoint if different)
-    # Using a common placeholder endpoint for NVIDIA NIM
+    # NVIDIA Embeddings 엔드포인트 예시 (실제 엔드포인트로 교체 필요)
+    # NVIDIA NIM 공통 플레이스홀더 엔드포인트 사용
     EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings"
     CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
     @staticmethod
     async def get_embedding(text: str) -> List[float]:
         """
-        Generate embedding for the given text using NVIDIA NeMo.
+        NVIDIA NeMo를 사용하여 주어진 텍스트에 대한 임베딩을 생성합니다.
         """
         if not settings.NVIDIA_API_KEY:
             # Fallback or Mock for local dev if key is missing
@@ -53,7 +53,7 @@ class LLMService:
                 return data["data"][0]["embedding"]
             except Exception as e:
                 print(f"Error calling NVIDIA API: {e}")
-                # Fallback to mock for stability during dev if API fails
+                # API 실패 시 개발 중 안정성을 위한 모의 폴백
                 return [0.0] * 1024
 
     @staticmethod
@@ -61,7 +61,7 @@ class LLMService:
         text: str, user_id: str, record_id: str, date: str
     ) -> str:
         """
-        Generate a Cypher query to insert graph nodes/relationships based on the diary entry.
+        일기 내용을 바탕으로 그래프 노드/관계를 삽입하는 Cypher 쿼리를 생성합니다.
         """
         if not settings.NVIDIA_API_KEY:
             print("WARNING: NVIDIA_API_KEY not set. Returning dummy query.")
@@ -73,7 +73,7 @@ class LLMService:
             "Accept": "application/json",
         }
 
-        # Schema Definition prompt
+        # 스키마 정의 프롬프트 (영어 유지)
         schema_desc = """
         Graph Schema:
         - Nodes:
@@ -143,6 +143,92 @@ class LLMService:
             except Exception as e:
                 print(f"Error generating Cypher: {e}")
                 return ""
+
+    @staticmethod
+    async def generate_answer_with_reasoning(
+        question: str, context_records: List[dict], context_graph: dict
+    ) -> dict:
+        """
+        다음을 기반으로 답변을 종합합니다:
+        - 유사한 기록 (의미 메모리 - Vector Memory)
+        - 연결된 그래프 노드 (관계 메모리 - Relationship Memory)
+
+        반환값: { "answer": str, "confidence": float, "reasoning_path": dict }
+        """
+        # 1. 컨텍스트 포맷팅
+        records_text = "\n".join(
+            [f"- [{r.get('recordId')}] {r.get('content')}" for r in context_records]
+        )
+
+        # 그래프 단순화 하여 프롬프트에 주입
+        # (프로토타입용 단순 문자열 변환)
+        graph_text = str(context_graph)
+
+        prompt = f"""
+        You are an AI assistant helping a user recall their personal memories.
+        
+        Question: "{question}"
+        
+        Here are some relevant diary records (Vector Memory):
+        {records_text}
+        
+        Here is the knowledge graph context around those records (Graph Memory):
+        {graph_text}
+
+        Task:
+        1. Answer the user's question naturally, based ONLY on the provided context.
+        2. If the answer is not in the context, say so.
+        3. Provide a reasoning path explaining how you connected the dots.
+
+        Output Format (JSON):
+        {{
+            "answer": "Your natural language response...",
+            "confidence": 0.9,
+            "reasoning_summary": "I found record X which mentions Y, and the graph shows Y is connected to Z..."
+        }}
+        """
+
+        if not settings.NVIDIA_API_KEY:
+            return {
+                "answer": "This is a mock answer because NVIDIA_API_KEY is missing.",
+                "confidence": 0.0,
+                "reasoning_summary": "Mock reasoning.",
+            }
+
+        headers = {
+            "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        payload = {
+            "model": "meta/llama-3.1-70b-instruct",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    LLMService.CHAT_URL, json=payload, headers=headers, timeout=30.0
+                )
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+
+                # Cleanup potential markdown ticks
+                clean_content = (
+                    content.replace("```json", "").replace("```", "").strip()
+                )
+                return json.loads(clean_content)
+            except Exception as e:
+                print(f"Error generating answer: {e}")
+                return {
+                    "answer": "Error generating answer",
+                    "confidence": 0.0,
+                    "reasoning_summary": str(e),
+                }
 
     @staticmethod
     async def extract_entities(text: str) -> GraphData:

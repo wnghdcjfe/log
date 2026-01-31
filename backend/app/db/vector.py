@@ -28,7 +28,7 @@ class VectorDB:
         )
 
     @staticmethod
-    async def search(query_vector: list, top_k: int = 5):
+    async def search(query_vector: list, user_id: str, top_k: int = 5):
         """
         Perform vector search using $vectorSearch aggregation stage.
         """
@@ -42,6 +42,8 @@ class VectorDB:
                 "$vectorSearch": {
                     "index": "vector_index",  # Ensure this index name matches Atlas config
                     "path": "embedding",
+                    "path": "embedding",
+                    "filter": {"userId": {"$eq": user_id}},
                     "queryVector": query_vector,
                     "numCandidates": top_k * 10,
                     "limit": top_k,
