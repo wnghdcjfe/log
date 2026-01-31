@@ -1,31 +1,8 @@
+갑자기 여자친구가 기분이 나쁘다고 했다.... 어떻게 해야할까? 
 # OUTBRAIN
+OUTBRAIN은 일기를 단순히 저장하지 않고, 기록을 벡터와 그래프로 구조화하여 개인의 기억과 경험을 분석하는 인사이트 다이어리입니다. 
 
-**기억을 그래프로 확장하는 개인 인사이트 다이어리**
-
-OUTBRAIN은 사용자의 일기를 단순 저장하는 앱이 아니라,
-기록을 의미(Vector)와 관계(Graph)로 구조화하여 패턴·관계·인과를 되돌려주는 개인 사고 확장 시스템입니다.
-
-사용자는 일기를 쓰는 것만으로 과거의 감정, 사람, 사건이 어떻게 반복·연결되는지를 그래프 기반 인사이트로 확인할 수 있습니다.
-
----
-
-## 📋 목차
-
-- [제품 개요](#-제품-개요)
-- [시스템 아키텍처](#-시스템-아키텍처)
-- [기술 스택](#-기술-스택)
-- [핵심 기능](#-핵심-기능)
-- [데이터 플로우](#-데이터-플로우)
-- [설치 및 실행](#-설치-및-실행)
-- [API 문서](#-api-문서)
-- [데이터베이스 스키마](#-데이터베이스-스키마)
-- [프로젝트 구조](#-프로젝트-구조)
-
----
-
-## 🎯 제품 개요
-
-OUTBRAIN은 **일기를 쓰면 그 기록을 그래프 메모리로 변환해 "인사이트화된 일기"를 만들어주는 앱**입니다.
+사용자는 일기를 쓰는 것만으로 과거의 감정, 사람, 사건이 어떻게 반복·연결되는지를 그래프 기반 인사이트로 확인할 수 있습니다. 
 
 ### 핵심 가치
 
@@ -69,7 +46,7 @@ OUTBRAIN은 **일기를 쓰면 그 기록을 그래프 메모리로 변환해 "�
        │                       │              │
 ┌──────▼──────┐   ┌───────────▼────┐   ┌────▼─────┐
 │  MongoDB    │   │  Neo4j Graph   │   │ OpenAI   │
-│  (Atlas)    │   │  (Async)       │   │ / NVIDIA │
+│  (Atlas)    │   │                │   │          │
 │             │   │                │   │          │
 │ - Records   │   │ - Knowledge    │   │ - LLM    │
 │ - Vector    │   │   Graph        │   │ - Embed  │
@@ -107,7 +84,7 @@ OUTBRAIN은 **일기를 쓰면 그 기록을 그래프 메모리로 변환해 "�
 | Framework | FastAPI | 비동기 REST API |
 | Document DB | MongoDB Atlas | 일기 저장 + Vector Search |
 | Graph DB | Neo4j | 관계 메모리, 엔티티 그래프 |
-| LLM Provider | OpenAI / NVIDIA NeMo | 임베딩, 답변 생성, Reranking |
+| LLM Provider | OpenAI   | 임베딩, 답변 생성, Reranking |
 | Async DB Driver | Motor (MongoDB), AsyncGraphDatabase (Neo4j) | 비동기 데이터베이스 연결 |
 | Validation | Pydantic | 데이터 검증 및 설정 관리 |
 
@@ -115,7 +92,7 @@ OUTBRAIN은 **일기를 쓰면 그 기록을 그래프 메모리로 변환해 "�
 | 카테고리 | 기술 | 용도 |
 |---------|------|------|
 | Framework | React 18.2 + TypeScript | UI 구축 |
-| Build Tool | Vite 5.0 | 빠른 개발 환경 |
+| Build Tool | Vite 5.0 | 개발 환경 |
 | Routing | React Router 6.21 | SPA 라우팅 |
 | Styling | TailwindCSS 3.3 | 유틸리티 기반 스타일링 |
 | Rich Editor | Lexical 0.39 | 일기 작성 에디터 |
@@ -226,18 +203,7 @@ Confidence: 0.85
 Reasoning: 2024-11-15 일기 참조 (회사 스트레스, 이직 고민 언급)
 ```
 
----
-
-### 5. 그래프 시각화
-
-**ReactFlow 기반 인터랙티브 그래프**
-
-- 노드 색상: 감정별 구분 (radiant → 파란색, sad → 회색)
-- 매칭 노드 강조 (두꺼운 테두리)
-- 드래그, 줌, 팬 지원
-- 노드 클릭 시 상세 정보 패널 표시
-
----
+--- 
 
 ## 🔄 데이터 플로우
 
@@ -344,7 +310,7 @@ NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_password
 
-# LLM Provider ("openai" or "nvidia")
+# LLM Provider  
 LLM_PROVIDER=openai
 
 # OpenAI
@@ -443,14 +409,7 @@ cd ../backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
----
-
-## 📡 API 문서
-
-### Base URL
-```
-http://localhost:8000/api/v1
-```
+--- 
 
 ### Records API
 
@@ -765,80 +724,15 @@ log/
 ```
 
 ---
+ 
 
-## 🔒 보안/정합성/성능 원칙 (NFR)
-
-### 보안 (Security)
-
-#### 사용자 데이터 격리
-- **userId 스코프 강제**: 모든 쿼리에 userId 필터 적용
-  - MongoDB: `{ userId: "user123", deletedAt: null }`
-  - Neo4j: `MATCH (u:User {userId: $userId})-[:OWNS]->(r:Record)`
-  - Vector Search: metadata filter 필수
-- **API 레벨 검증**: Pydantic 스키마로 입력 검증
-- **환경 변수 관리**: 민감 정보(API Key, DB Credentials)는 `.env` 파일로 관리
-
-#### 데이터 프라이버시
-- **Soft Delete**: 물리 삭제 대신 `deletedAt` 타임스탬프 설정
-- **임베딩 암호화**: 프로덕션 환경에서 MongoDB 암호화 권장
-- **LLM 데이터 처리**: OpenAI API는 2024년 3월부터 데이터 미학습 정책 적용
-
----
-
-### 정합성 (Data Integrity)
-
-#### Cross-Database 일관성
-- **recordId (UUID) 기반 연결**: MongoDB와 Neo4j를 UUID로 연결
-  - MongoDB `_id` (ObjectId): 프론트엔드 표시용
-  - `recordId` (UUID): 백엔드 내부 연결 키
-- **트랜잭션 보장 (향후 개선)**:
-  - 현재: Best-effort 방식
-  - 향후: Saga 패턴 또는 Outbox 패턴 도입
-
-#### 삭제 정합성
-- **Soft Delete 우선**: MongoDB에서 `deletedAt` 설정
-- **Vector/Graph 동기화** (향후 개선):
-  - 현재: MongoDB만 삭제
-  - 향후: Neo4j 노드도 `deleted: true` 속성 추가
-
-#### 설명가능성 보장
-- **evidenceRecordId 강제**: 모든 Neo4j 관계는 출처 기록
-- **추론 경로 투명성**: reasoningPath에 참조한 일기 ID 포함
-
----
-
-### 성능 (Performance)
-
-#### 검색 최적화
-- **Vector Search**:
-  - Top-K 제한: 초기 10개 후보 (Reranking용)
-  - 인덱스: MongoDB Atlas Vector Index (cosine similarity)
-  - 임베딩 캐싱: LRU 캐시 (향후 추가 예정)
-- **Hybrid Search**:
-  - RRF Fusion으로 Vector + Text 결합
-  - Time Decay로 최신 기록 우선
-- **Reranking**:
-  - 10개 → 5개로 최종 후보 압축
-  - LLM 비용 절감
-
-#### 그래프 성능
+### 성능 (Performance)  
 - **인덱스 전략**:
   - `user_record_idx`: (userId, recordId) 복합 인덱스
   - `user_entity_idx`: userId 단일 인덱스
 - **Hop 제한**: 1-2 hop으로 서브그래프 크기 제어
 - **User 노드 제외**: 슈퍼노드로 인한 성능 저하 방지
-- **경로 제한**: 최대 50개 경로 반환
-
-#### 비동기 I/O
-- **FastAPI + Motor**: MongoDB 비동기 드라이버
-- **AsyncGraphDatabase**: Neo4j 비동기 드라이버
-- **병렬 처리**: Vector Search와 Graph Retrieval 병렬 실행 가능
-
-#### 캐싱 전략 (향후 개선)
-- **LLM 응답 캐싱**: 동일 질문에 대한 답변 재사용
-- **임베딩 캐싱**: 자주 조회되는 일기의 임베딩 메모리 캐싱
-- **서브그래프 캐싱**: 최근 조회한 서브그래프 Redis 캐싱
-
+- **경로 제한**: 최대 50개 경로 반환 
 ---
 
 ## 🧪 테스트
@@ -863,51 +757,12 @@ pytest tests/ -v
 - Hybrid Search (Vector + Text + RRF + Time Decay)
 - LLM Reranking
 - Graph Subgraph Retrieval
-- RAG 파이프라인 (end-to-end)
-
----
-
-## 🚀 향후 개선 계획
-
-### 단기 (1-2개월)
-- [ ] 사용자 인증 (JWT 기반)
-- [ ] 일기 수정 시 그래프 자동 업데이트
-- [ ] 삭제 시 Vector/Graph 동기화
-- [ ] LLM 응답 캐싱 (Redis)
-- [ ] 프론트엔드 에러 바운더리 추가
-
-### 중기 (3-6개월)
-- [ ] 멀티모달 지원 (이미지, 음성 일기)
-- [ ] 고급 인사이트 (반복 패턴 탐지, 감정 추이 분석)
-- [ ] SearchSession 저장 및 재사용
-- [ ] 실시간 추천 (오늘 쓸 내용 제안)
-- [ ] 모바일 앱 (React Native)
-
-### 장기 (6개월+)
-- [ ] 개인화된 LLM 파인튜닝
-- [ ] 페더레이션 러닝 (프라이버시 보존)
-- [ ] 지식 그래프 추론 (Neo4j GDS)
-- [ ] 다중 언어 지원
-- [ ] 오픈소스 공개
-
+- RAG 파이프라인 (end-to-end) 
 ---
 
 ## 📄 라이선스
 
-이 프로젝트는 개인 연구 목적으로 제작되었습니다.
-
----
-
-## 👥 기여
-
-이슈와 PR은 환영합니다!
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
+이 프로젝트는 개인 연구 목적으로 제작되었습니다. 
 ---
 
 ## 📧 문의
@@ -916,11 +771,6 @@ pytest tests/ -v
 
 ---
 
-## 🙏 감사의 말
-
-- **OpenAI**: GPT-4o, Embeddings API
-- **MongoDB Atlas**: Vector Search 지원
-- **Neo4j**: 그래프 데이터베이스
-- **FastAPI**: 빠르고 직관적인 API 프레임워크
-- **React**: 강력한 UI 라이브러리
-- **ReactFlow**: 아름다운 그래프 시각화
+여자친구가 기분이 나쁠땐? 
+아웃브레인~
+감사합니다. 
