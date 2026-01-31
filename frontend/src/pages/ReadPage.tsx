@@ -115,7 +115,7 @@ export function ReadPage() {
   }
 
   return (
-    <div className="flex-1 max-w-3xl w-full mx-auto p-6">
+    <div className="flex-1 max-w-[1020px] w-full mx-auto p-4 md:p-6">
       <div
         className="mb-6 rounded-xl p-4"
         style={{ backgroundColor: 'rgba(255, 218, 185, 0.3)', border: '1px solid #FFDAB9' }}

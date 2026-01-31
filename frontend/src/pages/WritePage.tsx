@@ -118,10 +118,10 @@ export function WritePage() {
   return (
     <div className="min-h-full bg-[#FAF9F6] text-slate-800">
       {/* Header */}
-      <header className="max-w-5xl mx-auto px-6 py-8 flex justify-between items-center">
+      <header className="max-w-[1020px] mx-auto px-4 md:px-6 py-6 md:py-8 flex flex-col md:flex-row gap-4 md:gap-0 md:justify-between md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">오늘 하루 어땠어?</h1>
-          <p className="text-slate-500 mt-1 font-light">지금 떠오르는 생각을 편하게 적어보세요.</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">오늘 하루 어땠어?</h1>
+          <p className="text-sm md:text-base text-slate-500 mt-1 font-light">지금 떠오르는 생각을 편하게 적어보세요.</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -129,7 +129,7 @@ export function WritePage() {
             type="submit"
             form="write-form"
             disabled={!canSubmit}
-            className="bg-[#FFB3A7] hover:opacity-90 text-white px-8 py-2.5 rounded-full font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#FFB3A7] hover:opacity-90 text-white px-6 md:px-8 py-2 md:py-2.5 rounded-full text-sm md:text-base font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ boxShadow: '0 10px 40px rgba(255, 179, 167, 0.25)' }}
           >
             {saving ? '저장 중...' : saved ? '저장됨!' : '저장'}
@@ -137,7 +137,7 @@ export function WritePage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 pb-20">
+      <main className="max-w-[1020px] mx-auto px-4 md:px-6 pb-12 md:pb-20">
         <form id="write-form" onSubmit={handleSubmit}>
           {/* Title + Date (open canvas style) */}
           <section className="flex flex-col md:flex-row md:items-end gap-8 py-2">
@@ -145,12 +145,12 @@ export function WritePage() {
               <label className="block text-xs uppercase tracking-widest text-slate-400 font-medium mb-3">
                 Title
               </label>
-              <input 
+              <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="오늘 하루는 어땠나요?"
-                className="w-full bg-transparent text-4xl font-semibold placeholder-slate-300 border-none p-0 focus:ring-0"
+                className="w-full bg-transparent text-2xl md:text-4xl font-semibold placeholder-slate-300 border-none p-0 focus:ring-0"
               />
               {/* subtle underline */}
               <div className="mt-3 h-px bg-slate-200/70" />

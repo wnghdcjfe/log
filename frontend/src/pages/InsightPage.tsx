@@ -336,8 +336,8 @@ export function InsightPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#FFF9F5]"> 
-      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="flex-1 overflow-y-auto bg-[#FFF9F5]">
+      <div className="p-4 md:p-6 lg:p-8 max-w-[1020px] mx-auto space-y-6 md:space-y-8">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-800 ">
             일기를 들여보다.
@@ -417,69 +417,89 @@ export function InsightPage() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)]">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-lg text-slate-800">활동 강도</h3>
-              <span
-                className="material-symbols-outlined text-[#FFB6A3] text-sm cursor-help"
-                title="일기 작성 빈도 (최근 12주)"
-              >
-                info
-              </span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 일기잔디 */}
+          <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)]">
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-slate-800">일기잔디</h3>
+                <span
+                  className="material-symbols-outlined text-[#FFB6A3] text-sm cursor-help"
+                  title="일기 작성 빈도 (최근 12주)"
+                >
+                  info
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[9px] uppercase font-bold text-slate-500">
+                <span>적음</span>
+                <div className="flex gap-0.5">
+                  {HEATMAP_COLORS.map((c) => (
+                    <div
+                      key={c}
+                      className="w-2 h-2 rounded-sm"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+                <span>많음</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-[10px] uppercase font-bold text-slate-500">
-              <span>적음</span>
-              <div className="flex gap-1">
-                {HEATMAP_COLORS.map((c) => (
-                  <div
-                    key={c}
-                    className="size-3 rounded-sm border border-[#FFDAB9]"
-                    style={{ backgroundColor: c }}
-                  />
+            <div className="w-full overflow-x-auto">
+              <div className="flex gap-3 justify-center" style={{ height: '160px' }}>
+                {/* Day labels */}
+                <div className="flex flex-col justify-between text-[9px] text-slate-400 font-medium py-1">
+                  <span style={{ lineHeight: '12px' }}>월</span>
+                  <span style={{ lineHeight: '12px' }}>수</span>
+                  <span style={{ lineHeight: '12px' }}>금</span>
+                </div>
+
+                {/* Heatmap grid */}
+                <div className="flex gap-1.5">
+                  {heatmapGrid[0]?.map((_, colIdx) => (
+                    <div key={colIdx} className="flex flex-col gap-1.5">
+                      {heatmapGrid.map((row, rowIdx) => {
+                        const cell = row[colIdx]
+                        const level = cell && maxHeat > 0 ? Math.min(Math.ceil((cell.count / maxHeat) * 4), 4) : 0
+                        const bg = HEATMAP_COLORS[level] ?? HEATMAP_COLORS[0]
+                        return (
+                          <div
+                            key={rowIdx}
+                            className="w-4 h-4 rounded hover:ring-2 hover:ring-[#FFB6A3] transition-all cursor-pointer"
+                            style={{ backgroundColor: bg }}
+                            title={`${cell?.count ?? 0}건`}
+                          />
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Month labels */}
+              <div className="flex gap-1.5 mt-2 ml-10 text-[9px] text-slate-400 font-medium justify-center">
+                {weekLabels.map((l, i) => (
+                  <span key={i} className="w-4 text-center" style={{ marginRight: '6px' }}>
+                    {i % 4 === 0 ? l : ''}
+                  </span>
                 ))}
               </div>
-              <span>많음</span>
             </div>
           </div>
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-1 w-full">
-              {heatmapGrid[0]?.map((_, colIdx) => (
-                <div key={colIdx} className="flex flex-col gap-1 flex-1">
-                  {heatmapGrid.map((row, rowIdx) => {
-                    const cell = row[colIdx]
-                    const level = cell && maxHeat > 0 ? Math.min(Math.ceil((cell.count / maxHeat) * 4), 4) : 0
-                    const bg = HEATMAP_COLORS[level] ?? HEATMAP_COLORS[0]
-                    return (
-                      <div
-                        key={rowIdx}
-                        className="w-full aspect-square rounded-sm border border-[#FFDAB9]/50"
-                        style={{ backgroundColor: bg }}
-                        title={`${cell?.count ?? 0}건`}
-                      />
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between mt-2 px-1 text-[10px] text-slate-400 font-medium">
-              {weekLabels.map((l, i) => (
-                <span key={i}>{l}</span>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)]">
-            <h3 className="font-bold text-lg text-slate-800 mb-6">감정 분포</h3>
-            <div className="h-[220px]">
-              <Doughnut data={emotionData} options={doughnutOptions} />
+          {/* 감정 분포 */}
+          <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)] flex flex-col">
+            <h3 className="font-bold text-base text-slate-800 mb-4">감정 분포</h3>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-[220px]">
+                <Doughnut data={emotionData} options={doughnutOptions} />
+              </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)]">
-            <h3 className="font-bold text-lg text-slate-800 mb-6">월별 작성 빈도</h3>
-            <div className="space-y-3 max-h-[220px] overflow-y-auto">
+
+          {/* 월별 작성 빈도 */}
+          <div className="bg-white p-6 rounded-xl border border-[#FFDAB9] shadow-[0_4px_20px_-2px_rgba(255,182,163,0.1)] flex flex-col">
+            <h3 className="font-bold text-base text-slate-800 mb-4">월별 작성 빈도</h3>
+            <div className="space-y-2.5 flex-1 overflow-y-auto">
               {(() => {
                 const byMonth: Record<string, number> = {}
                 allDiaries.forEach((d) => {
@@ -492,17 +512,17 @@ export function InsightPage() {
                   <p className="text-slate-400 text-sm">데이터 없음</p>
                 ) : (
                   entries.map(([month, count]) => (
-                    <div key={month} className="flex items-center gap-3">
-                      <span className="text-sm text-slate-600 w-24">
+                    <div key={month} className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 w-20 shrink-0">
                         {format(parseISO(month + '-01'), 'yyyy년 M월', { locale: ko })}
                       </span>
-                      <div className="flex-1 h-6 bg-[#FFF9F5] rounded overflow-hidden">
+                      <div className="flex-1 h-5 bg-[#FFF9F5] rounded overflow-hidden">
                         <div
                           className="h-full rounded bg-[#FFB6A3] transition-all"
                           style={{ width: `${(count / maxVal) * 100}%` }}
                         />
                       </div>
-                      <span className="text-sm font-semibold text-[#F4A460] w-8">{count}</span>
+                      <span className="text-xs font-semibold text-[#F4A460] w-6 text-right">{count}</span>
                     </div>
                   ))
                 )

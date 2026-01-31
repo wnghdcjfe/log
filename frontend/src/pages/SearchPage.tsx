@@ -115,7 +115,7 @@ export function SearchPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col overflow-hidden max-w-[1200px] w-full mx-auto px-4 py-4">
+          <div className="flex-1 flex flex-col overflow-hidden max-w-[1020px] w-full mx-auto px-4 py-4">
             <div className="flex gap-3 items-center mb-3">
               <label className="flex gap-2 items-center select-none text-[#8b6355] text-sm cursor-pointer">
                 <input
