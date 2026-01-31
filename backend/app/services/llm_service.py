@@ -73,9 +73,6 @@ class NvidiaLLMService(LLMServiceInterface):
     async def generate_graph_cypher(
         self, text: str, user_id: str, record_id: str, date: str
     ) -> str:
-        if not settings.NVIDIA_API_KEY:
-            return ""
-
         headers = {
             "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
             "Content-Type": "application/json",
@@ -113,7 +110,9 @@ class NvidiaLLMService(LLMServiceInterface):
             "stream": False,
         }
 
-        return await self._call_chat_api(headers, payload)
+        content = await self._call_chat_api(headers, payload)
+        clean_content = content.replace("```cypher", "").replace("```", "").strip()
+        return clean_content
 
     async def generate_answer_with_reasoning(
         self, question: str, context_records: List[dict], context_graph: dict

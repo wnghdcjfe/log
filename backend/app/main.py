@@ -4,8 +4,26 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+from contextlib import asynccontextmanager
+from app.db.mongo import mongo_db
+from app.db.graph import neo4j_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await mongo_db.connect()
+    await neo4j_db.connect()
+    yield
+    # Shutdown
+    await mongo_db.close()
+    await neo4j_db.close()
+
+
 app = FastAPI(
-    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan,
 )
 
 # CORS Setup
