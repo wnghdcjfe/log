@@ -459,8 +459,10 @@ export function InsightPage() {
                     <div key={colIdx} className="flex flex-col gap-1.5">
                       {heatmapGrid.map((row, rowIdx) => {
                         const cell = row[colIdx]
-                        const level = cell && maxHeat > 0 ? Math.min(Math.ceil((cell.count / maxHeat) * 4), 4) : 0
-                        const bg = HEATMAP_COLORS[level] ?? HEATMAP_COLORS[0]
+                          const level = cell && cell.count > 0 && maxHeat > 0
+                          ? Math.min(Math.ceil((cell.count / maxHeat) * 3), 3)
+                          : 0
+                        const bg = HEATMAP_COLORS[level]
                         return (
                           <div
                             key={rowIdx}
