@@ -32,11 +32,11 @@ async def test_answer_question_success(mock_req):
         # Setup mocks
         mock_embed.return_value = [0.1, 0.2]
 
-        # Hybrid search 결과 (MongoDB _id 포함)
+        # Hybrid search 결과 (MongoDB _id + recordId 포함)
         from bson import ObjectId
         mock_object_id = ObjectId()
         mock_vec_results = [
-            {"_id": mock_object_id, "recordId": "rec1", "content": "content1", "score": 0.9}
+            {"_id": mock_object_id, "recordId": "uuid-rec1", "content": "content1", "score": 0.9}
         ]
         mock_vec_search.return_value = mock_vec_results
 

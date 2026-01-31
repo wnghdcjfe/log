@@ -49,14 +49,19 @@ class ReasoningService:
 
         print(f"[DEBUG] After reranking: {len(reranked_results)} documents selected")
 
-        # Use MongoDB _id for frontend compatibility
-        record_ids = [str(res["_id"]) for res in reranked_results if "_id" in res]
-        print(f"[DEBUG] Record IDs (MongoDB _id): {record_ids}")
+        # MongoDB _id: 프론트엔드 호환용
+        mongo_ids = [str(res["_id"]) for res in reranked_results if "_id" in res]
+        # recordId: Neo4j 그래프 조회용 (UUID)
+        record_ids = [res["recordId"] for res in reranked_results if "recordId" in res]
+
+        print(f"[DEBUG] MongoDB IDs: {mongo_ids}")
+        print(f"[DEBUG] Record IDs (for Neo4j): {record_ids}")
 
         # 4. Graph Retrieval (Context Subgraph)
+        # Neo4j에서는 recordId (UUID)를 사용하여 그래프 조회
         graph_context = await neo4j_db.get_context_subgraph(
             user_id=request.userId,
-            record_ids=record_ids,
+            record_ids=record_ids,  # recordId 사용
             hop=1,  # Start with 1-hop for speed
         )
 
@@ -77,7 +82,7 @@ class ReasoningService:
             confidence=llm_response.get("confidence", 0.0),
             reasoningPath={
                 "summary": llm_response.get("reasoning_summary", ""),
-                "records": record_ids,
+                "records": mongo_ids,  # 프론트엔드 호환용 MongoDB _id
                 "graph_snapshot": {
                     "node_count": len(graph_context.get("nodes", [])),
                     "edge_count": len(graph_context.get("edges", [])),
