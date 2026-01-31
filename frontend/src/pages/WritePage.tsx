@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import { DiaryEditor } from '../components/DiaryEditor'
 import { createDiary } from '../api/diaries'
 import { useDiariesContext } from '../context/DiariesContext'
@@ -23,8 +22,6 @@ const MOODS = [
   { id: 'sad', label: '슬픔', icon: 'mood_bad' },
 ] as const
 
-const SUGGESTED_TAGS = ['번아웃', '피로', '기쁨', '후회', '감사', '직장', '가족', '휴식']
-
 const REFLECTIVE_PROMPTS = [
   '오늘 예상치 못하게 미소 지었던 순간은?',
   '오늘 하루 가장 감사했던 것은?',
@@ -32,15 +29,11 @@ const REFLECTIVE_PROMPTS = [
   '오늘 느꼈던 감정을 한 단어로 표현한다면?',
 ]
 
-// 작성 중 이탈 경고를 쓰고 싶으면 true, 원치 않으면 false
-const ENABLE_DIRTY_GUARD = true
-
 export function WritePage() {
   const { refetch } = useDiariesContext()
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [, setContentHtml] = useState('')
   const [editorKey, setEditorKey] = useState(0)
   const [feel, setFeel] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
@@ -55,9 +48,7 @@ export function WritePage() {
     []
   )
 
-  // ✅ unmount 이후 setState 방지
   const isMountedRef = useRef(true)
-  // ✅ saved 타이머 정리
   const savedTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -75,22 +66,13 @@ export function WritePage() {
     const d = new Date(date)
     if (isNaN(d.getTime())) return
     setCalendarMonth((prev) => {
-      if (d.getMonth() !== prev.getMonth() || d.getFullYear() !== prev.getFullYear()) {
-        return d
-      }
+      if (d.getMonth() !== prev.getMonth() || d.getFullYear() !== prev.getFullYear()) return d
       return prev
     })
   }, [date])
 
-  const handleEditorChange = (html: string, plainText: string) => {
+  const handleEditorChange = (_html: string, plainText: string) => {
     setContent(plainText)
-    setContentHtml(html)
-  }
-
-  const addTag = (tag: string) => {
-    const current = feel.split(/[,，\s]+/).filter(Boolean)
-    if (current.includes(tag)) return
-    setFeel([...current, tag].join(', '))
   }
 
   const handleMoodSelect = (moodId: string) => {
@@ -128,27 +110,22 @@ export function WritePage() {
         date,
       })
 
-      // ✅ 이동/언마운트 되었으면 종료
       if (!isMountedRef.current) return
 
       setSaved(true)
       setTitle('')
       setContent('')
-      setContentHtml('')
       setFeel('')
       setSelectedMood(null)
       setDate(format(new Date(), 'yyyy-MM-dd'))
       setEditorKey((k) => k + 1)
       refetch()
 
-      // ✅ 타이머 중복 제거 후 재설정
-      if (savedTimeoutRef.current !== null) {
-        window.clearTimeout(savedTimeoutRef.current)
-      }
+      if (savedTimeoutRef.current !== null) window.clearTimeout(savedTimeoutRef.current)
       savedTimeoutRef.current = window.setTimeout(() => {
         if (!isMountedRef.current) return
         setSaved(false)
-      }, 3000)
+      }, 2500)
     } catch (err) {
       if (!isMountedRef.current) return
       setSaveError(err instanceof Error ? err.message : '저장 실패')
@@ -164,202 +141,117 @@ export function WritePage() {
   const paddingStart = monthStart.getDay()
   const paddingEnd = 42 - paddingStart - days.length
 
-  // ✅ 취소 클릭 가드
-  const isDirty = !!title.trim() || !!content.trim() || !!feel.trim()
-  const handleCancelClick = (e: React.MouseEvent) => {
-    // 저장 중엔 이동 금지
-    if (saving) {
-      e.preventDefault()
-      return
-    }
-    // 작성 중이면 확인
-    if (ENABLE_DIRTY_GUARD && isDirty) {
-      const ok = window.confirm('작성 중인 내용이 있습니다. 이동하면 내용이 사라집니다. 이동하겠습니까?')
-      if (!ok) e.preventDefault()
-    }
-  }
+  const canSubmit = !!title.trim() && !!content.trim() && !saving
 
   return (
-    <div className="flex flex-col min-h-full bg-[#FFF9F5]">
-      <main className="flex-1 flex justify-center py-10 px-4">
-        <div className="flex flex-col max-w-[1024px] w-full flex-1">
-          {/* Page Heading */}
-          <div className="flex flex-wrap justify-between items-end gap-4 p-4 mb-6">
-            <div className="flex min-w-72 flex-col gap-2">
-              <h1 className="text-[#181210] text-3xl md:text-4xl font-black leading-tight tracking-tight ">
-                오늘하루 어땠어?
-              </h1>
-              <p className="text-[#8d675e] text-base font-normal">생각을 페이지에 흘려보내세요.</p>
+    <div className="min-h-full bg-[#FAF9F6] text-slate-800">
+      {/* Header */}
+      <header className="max-w-5xl mx-auto px-6 py-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">오늘 하루 어땠어?</h1>
+          <p className="text-slate-500 mt-1 font-light">지금 떠오르는 생각을 편하게 적어보세요.</p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button
+            type="submit"
+            form="write-form"
+            disabled={!canSubmit}
+            className="bg-[#FFB3A7] hover:opacity-90 text-white px-8 py-2.5 rounded-full font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ boxShadow: '0 10px 40px rgba(255, 179, 167, 0.25)' }}
+          >
+            {saving ? '저장 중...' : saved ? '저장됨!' : '저장'}
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-6 pb-20">
+        <form id="write-form" onSubmit={handleSubmit}>
+          {/* Title + Date (open canvas style) */}
+          <section className="flex flex-col md:flex-row md:items-end gap-8 py-2">
+            <div className="flex-grow">
+              <label className="block text-xs uppercase tracking-widest text-slate-400 font-medium mb-3">
+                Title
+              </label>
+              <input 
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="오늘 하루는 어땠나요?"
+                className="w-full bg-transparent text-4xl font-semibold placeholder-slate-300 border-none p-0 focus:ring-0"
+              />
+              {/* subtle underline */}
+              <div className="mt-3 h-px bg-slate-200/70" />
             </div>
-            <div className="flex flex-col items-end gap-2">
-              {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
-              <div className="flex gap-3"> 
-                <button
-                  type="submit"
-                  form="write-form"
-                  disabled={!title.trim() || !content.trim() || saving}
-                  className="flex h-12 items-center justify-center rounded-xl bg-[#ffb6a3] px-10 text-white font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-105 transition-all"
-                  style={{ boxShadow: '0 10px 40px rgba(255, 182, 163, 0.3)' }}
-                >
-                  {saving ? '저장 중...' : saved ? '저장됨!' : '저장'}
-                </button>
+
+            <div className="w-full md:w-64">
+              <label className="block text-xs uppercase tracking-widest text-slate-400 font-medium mb-3">
+                Date
+              </label>
+
+              {/* keep native date input but styled like text row */}
+              <div className="flex items-center gap-2 text-xl font-light text-slate-600 hover:text-[#FFB3A7] transition-colors group"> 
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="bg-transparent border-none p-0 focus:ring-0 w-full cursor-pointer text-slate-600"
+                />
               </div>
+
+              <div className="mt-3 h-px bg-slate-200/70" />
+            </div>
+          </section>
+
+          {/* Mood */}
+          <section className=""> 
+
+            <div className="flex flex-wrap gap-4">
+              {MOODS.map((m) => {
+                const isSelected = selectedMood === m.id
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => handleMoodSelect(m.id)}
+                    className={[
+                      'flex items-center gap-2 px-5 py-2 rounded-full border transition-all',
+                      isSelected
+                        ? 'bg-[#FFB3A7] text-white border-[#FFB3A7]'
+                        : 'border-slate-200 text-slate-600 hover:border-[#FFB3A7]',
+                    ].join(' ')}
+                  >
+                    <span className="material-symbols-outlined text-xl">{m.icon}</span>
+                    <span className="text-sm font-medium">{m.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* optional prompt line */}
+            <div className="mt-8 flex justify-center">
+            <div className="text-center"> 
+              <p className="text-base text-slate-800 font-medium leading-relaxed">
+                “{prompt}”
+              </p>
             </div>
           </div>
 
-          <form id="write-form" onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-8 px-4">
-            {/* Main Editor Area */}
-            <div className="flex-1 space-y-8">
-              {/* Inputs Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <label className="flex flex-col flex-1">
-                  <p className="text-[#181210] text-base font-semibold pb-2">제목</p>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="오늘 하루는 어땠나요?"
-                    className="w-full rounded-xl text-[#181210] focus:outline-0 focus:ring-2 focus:ring-[#ffb6a3]/50 border border-[#e7ddda] bg-white h-14 placeholder:text-[#8d675e] p-4 text-base"
-                  />
-                </label>
-                <label className="flex flex-col flex-1">
-                  <p className="text-[#181210] text-base font-semibold pb-2">날짜</p>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="w-full rounded-xl text-[#181210] border border-[#e7ddda] bg-white h-14 p-4 text-base appearance-none cursor-pointer"
-                    />
-                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#8d675e] pointer-events-none">
-                      calendar_today
-                    </span>
-                  </div>
-                </label>
-              </div>
-
-              {/* Mood Selector */}
-              <div className="flex flex-col gap-3">
-                <p className="text-[#181210] text-base font-semibold">오늘 기분은?</p>
-                <div className="flex flex-wrap gap-4">
-                  {MOODS.map((m) => {
-                    const isSelected = selectedMood === m.id
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => handleMoodSelect(m.id)}
-                        className="flex flex-col items-center gap-1 group"
-                      >
-                        <div
-                          className={`size-14 rounded-full border-2 flex items-center justify-center transition-all shadow-sm ${
-                            isSelected
-                              ? 'bg-[#ffb6a3] border-[#ffb6a3] text-white'
-                              : 'bg-white border-[#e7ddda] text-[#8d675e] group-hover:border-[#ffb6a3] group-hover:text-[#ffb6a3]'
-                          }`}
-                        >
-                          <span className="material-symbols-outlined text-3xl">{m.icon}</span>
-                        </div>
-                        <span className="text-xs font-medium text-[#8d675e]">{m.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Content Area */}
-              <div className="flex flex-col gap-2">
-                <p className="text-[#181210] text-base font-semibold pb-2">내 이야기</p>
-                <div
-                  className="rounded-2xl border border-[#e7ddda] bg-white overflow-hidden shadow-sm min-h-[400px]"
-                  style={{ minHeight: 400 }}
-                >
-                  <DiaryEditor
-                    key={editorKey}
-                    onChange={handleEditorChange}
-                    placeholder=""
-                    minHeight="380px"
-                    contentBgColor="#ffffff"
-                    contentTextColor="#181210"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar */}
-            <aside className="w-full lg:w-72 space-y-6 shrink-0">
-              {/* Calendar Widget */}
-              <div className="rounded-2xl bg-white border border-[#e7ddda] p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setCalendarMonth((m) => subMonths(m, 1))}
-                    className="text-[#ffb6a3] hover:bg-[#ffb6a3]/10 p-1 rounded-full transition-colors"
-                  >
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                  <p className="text-[#181210] font-bold text-sm">
-                    {format(calendarMonth, 'yyyy년 M월', { locale: ko })}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setCalendarMonth((m) => addMonths(m, 1))}
-                    className="text-[#ffb6a3] hover:bg-[#ffb6a3]/10 p-1 rounded-full transition-colors"
-                  >
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-7 gap-1 text-center">
-                  {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
-                    <span key={d} className="text-[10px] font-bold text-[#8d675e]">
-                      {d}
-                    </span>
-                  ))}
-
-                  {Array.from({ length: paddingStart }).map((_, i) => (
-                    <div key={`p-${i}`} className="h-8" />
-                  ))}
-
-                  {days.map((d) => {
-                    const isSelected = date === format(d, 'yyyy-MM-dd')
-                    const isCurMonth = isSameMonth(d, calendarMonth)
-                    return (
-                      <button
-                        key={d.toISOString()}
-                        type="button"
-                        onClick={() => setDate(format(d, 'yyyy-MM-dd'))}
-                        className={`h-8 flex items-center justify-center text-xs rounded-full transition-colors ${
-                          !isCurMonth ? 'text-[#8d675e]/40' : ''
-                        } ${isSelected ? 'bg-[#ffb6a3] text-white font-bold' : 'hover:bg-[#ffb6a3]/20'} ${
-                          isToday(d) && !isSelected ? 'ring-1 ring-[#ffb6a3]' : ''
-                        }`}
-                      >
-                        {format(d, 'd')}
-                      </button>
-                    )
-                  })}
-
-                  {Array.from({ length: paddingEnd }).map((_, i) => (
-                    <div key={`e-${i}`} className="h-8" />
-                  ))}
-                </div>
-              </div>
- 
-
-              {/* Reflective Prompt */}
-              <div className="rounded-2xl bg-[#ffb6a3]/5 border border-[#ffb6a3]/10 p-5">
-                <h4 className="text-[#ffb6a3] text-sm font-bold mb-2">생각 나누기</h4>
-                <p className="text-[#8d675e] text-xs italic leading-relaxed">&quot;{prompt}&quot;</p>
-              </div>
-            </aside>
-          </form>
-        </div>
+          </section> 
+          <section className="mt-12">  
+            <div className="rounded-2xl border border-slate-200/60 bg-white shadow-sm overflow-hidden">
+              <DiaryEditor
+                key={editorKey}
+                onChange={handleEditorChange}
+                placeholder=""
+                minHeight="520px"
+                contentBgColor="#ffffff"
+                contentTextColor="#1f2937"
+              />
+            </div> 
+          </section>
+        </form>
       </main>
-
-      <footer className="mt-auto py-8 text-center border-t border-[#e7ddda]">
-        <p className="text-[#8d675e] text-xs font-medium">기록은 로컬에 안전하게 보관됩니다. © OUTBRAIN</p>
-      </footer>
     </div>
   )
 }

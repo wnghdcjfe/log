@@ -14,6 +14,12 @@
   color: var(--peach-text);
   background: linear-gradient(135deg, #fdfbfb 0%, #FFF9F5 50%, #ebedee 100%);
 }
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: none;
+}
 
 body {
   margin: 0;
