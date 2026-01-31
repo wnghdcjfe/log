@@ -48,7 +48,7 @@ const HEATMAP_COLORS = ['#FFF9F5', '#FFDAB9', '#FFB6A3', '#F4A460'] as const
 
 function toDiaryItems(nodes: RecordNode[]): DiaryItem[] {
   return nodes
-    .filter((n) => !n.isExpanded)
+    .filter((n) => n.type === 'record' && !n.isExpanded)
     .map((n) => ({
       id: n.id,
       date: n.timestamp.split('T')[0],
@@ -92,20 +92,27 @@ function getHeatmapData(dates: string[]): { weekIndex: number; dayOfWeek: number
 
   const grid: number[][] = Array.from({ length: days }, () => Array(weeks).fill(0))
   const dateCounts: Record<string, number> = {}
+
+  // Count occurrences of each date
   dates.forEach((d) => {
-    dateCounts[d] = (dateCounts[d] ?? 0) + 1
+    const normalized = d.split('T')[0] // Ensure yyyy-MM-dd format
+    dateCounts[normalized] = (dateCounts[normalized] ?? 0) + 1
   })
 
+  // Fill grid with counts
   for (let w = 0; w < weeks; w++) {
-    const weekStart = subWeeks(start, -(weeks - 1 - w))
+    const weekStart = new Date(start)
+    weekStart.setDate(weekStart.getDate() + w * 7)
+
     const weekDays = eachDayOfInterval({
       start: weekStart,
       end: new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
     })
+
     weekDays.forEach((d) => {
       const key = format(d, 'yyyy-MM-dd')
       const count = dateCounts[key] ?? 0
-      const dow = (getDay(d) + 6) % 7
+      const dow = (getDay(d) + 6) % 7 // Monday = 0, Sunday = 6
       grid[dow][w] = count
     })
   }
@@ -146,7 +153,7 @@ export function InsightPage() {
   const fullDiariesForWords = useMemo(
     () =>
       nodes
-        .filter((n) => !n.isExpanded)
+        .filter((n) => n.type === 'record' && !n.isExpanded)
         .map((n) => ({ title: n.label, content: n.originalText })),
     [nodes]
   )
@@ -181,18 +188,24 @@ export function InsightPage() {
     return entries[0]?.[0] ?? '-'
   }, [allDiaries])
 
-  const heatmapGrid = useMemo(
-    () => getHeatmapData(allDiaries.map((d) => d.date)),
-    [allDiaries]
-  )
+  const heatmapGrid = useMemo(() => {
+    const dates = allDiaries.map((d) => d.date)
+    console.log('📅 Heatmap dates:', dates.slice(0, 5), `(total: ${dates.length})`)
+    const grid = getHeatmapData(dates)
+    console.log('🔥 Heatmap grid sample:', grid[0]?.slice(0, 3))
+    return grid
+  }, [allDiaries])
+
   const maxHeat = useMemo(() => getMaxHeatmapCount(heatmapGrid), [heatmapGrid])
 
   const weekLabels = useMemo(() => {
     const labels: string[] = []
-    const start = startOfWeek(new Date(), { weekStartsOn: 1 })
-    for (let i = 11; i >= 0; i--) {
-      const d = subWeeks(start, i)
-      labels.push(format(d, 'M/d'))
+    const now = new Date()
+    const start = subWeeks(startOfWeek(now, { weekStartsOn: 1 }), 11)
+    for (let i = 0; i < 12; i++) {
+      const weekStart = new Date(start)
+      weekStart.setDate(weekStart.getDate() + i * 7)
+      labels.push(format(weekStart, 'M/d'))
     }
     return labels
   }, [])
@@ -430,9 +443,9 @@ export function InsightPage() {
             </div>
           </div>
           <div className="overflow-x-auto pb-4">
-            <div className="flex gap-1 min-w-[600px]">
+            <div className="flex gap-1 w-full">
               {heatmapGrid[0]?.map((_, colIdx) => (
-                <div key={colIdx} className="flex flex-col gap-1">
+                <div key={colIdx} className="flex flex-col gap-1 flex-1">
                   {heatmapGrid.map((row, rowIdx) => {
                     const cell = row[colIdx]
                     const level = cell && maxHeat > 0 ? Math.min(Math.ceil((cell.count / maxHeat) * 4), 4) : 0
@@ -440,7 +453,7 @@ export function InsightPage() {
                     return (
                       <div
                         key={rowIdx}
-                        className="size-3 rounded-sm border border-[#FFDAB9]/50"
+                        className="w-full aspect-square rounded-sm border border-[#FFDAB9]/50"
                         style={{ backgroundColor: bg }}
                         title={`${cell?.count ?? 0}건`}
                       />
