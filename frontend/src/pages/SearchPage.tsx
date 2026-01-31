@@ -68,9 +68,7 @@ export function SearchPage() {
   }, [findSearchResult, nodes])
 
   useEffect(() => {
-    if (loading) return
-    // Auto-search on initial load
-    handleSearch('번아웃')
+    if (loading) return 
   }, [loading, handleSearch])
 
   const matchedNodeIds = useMemo(
