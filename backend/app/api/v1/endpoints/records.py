@@ -1,3 +1,4 @@
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models.schemas.record_req import (
@@ -13,8 +14,8 @@ from app.db.mongo import mongo_db
 router = APIRouter()
 
 
-@router.get("", response_model=list[RecordResponse])
-async def list_records(userId: str | None = Query(default=None)):
+@router.get("", response_model=List[RecordResponse])
+async def list_records(userId: Optional[str] = Query(default=None)):
     """List all diary records."""
     try:
         await mongo_db.connect()

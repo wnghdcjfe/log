@@ -16,6 +16,8 @@ import {
   FORMAT_TEXT_COMMAND,
   REDO_COMMAND,
   UNDO_COMMAND,
+  type EditorState,
+  type LexicalEditor,
 } from 'lexical'
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list'
 import { $generateHtmlFromNodes } from '@lexical/html'
@@ -46,45 +48,54 @@ function onError(error: Error) {
   console.error('Lexical error:', error)
 }
 
-const initialNodes = [
-  HeadingNode,
-  QuoteNode,
-  ListNode,
-  ListItemNode,
-  LinkNode,
-  ImageNode,
-]
+const initialNodes = [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode, ImageNode]
 
 const ALLOWED_IMAGE_TYPES = 'image/jpeg,image/png,image/gif,image/webp'
 
 function ToolbarPlugin({ contentBgColor = '#FFF9F5' }: { contentBgColor?: string }) {
   const [editor] = useLexicalComposerContext()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const [isBold, setIsBold] = useState(false)
   const [isItalic, setIsItalic] = useState(false)
   const [isUnderline, setIsUnderline] = useState(false)
   const [isStrikethrough, setIsStrikethrough] = useState(false)
 
-  const updateToolbar = useCallback(() => {
-    const selection = $getSelection()
-    if ($isRangeSelection(selection)) {
-      setIsBold(selection.hasFormat('bold'))
-      setIsItalic(selection.hasFormat('italic'))
-      setIsUnderline(selection.hasFormat('underline'))
-      setIsStrikethrough(selection.hasFormat('strikethrough'))
-    }
-  }, [editor])
+  // ✅ selection 접근은 반드시 read 컨텍스트 안에서
+  const updateToolbarFromState = useCallback((editorState: EditorState) => {
+    editorState.read(() => {
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) {
+        setIsBold(selection.hasFormat('bold'))
+        setIsItalic(selection.hasFormat('italic'))
+        setIsUnderline(selection.hasFormat('underline'))
+        setIsStrikethrough(selection.hasFormat('strikethrough'))
+      } else {
+        // 선택이 없으면 초기화(원하면 유지해도 됨)
+        setIsBold(false)
+        setIsItalic(false)
+        setIsUnderline(false)
+        setIsStrikethrough(false)
+      }
+    })
+  }, [])
 
   useEffect(() => {
-    return editor.registerUpdateListener(() => updateToolbar())
-  }, [editor, updateToolbar])
+    // ✅ registerUpdateListener는 (editorState) 를 제공함
+    return editor.registerUpdateListener(({ editorState }) => {
+      updateToolbarFromState(editorState)
+    })
+  }, [editor, updateToolbarFromState])
 
   const format = (value: 'bold' | 'italic' | 'underline' | 'strikethrough') => () => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, value)
   }
 
   const insertList = (type: 'bullet' | 'number') => () => {
-    editor.dispatchCommand(type === 'bullet' ? INSERT_UNORDERED_LIST_COMMAND : INSERT_ORDERED_LIST_COMMAND, undefined)
+    editor.dispatchCommand(
+      type === 'bullet' ? INSERT_UNORDERED_LIST_COMMAND : INSERT_ORDERED_LIST_COMMAND,
+      undefined
+    )
   }
 
   const btn = 'p-2 rounded-lg transition-colors hover:bg-[#ffb6a3]/20'
@@ -100,7 +111,9 @@ function ToolbarPlugin({ contentBgColor = '#FFF9F5' }: { contentBgColor?: string
       <button type="button" onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} className={btn} title="다시 실행">
         <Redo2 className="w-4 h-4" style={{ color: '#8b6355' }} />
       </button>
+
       <span className="w-px h-6 bg-[#FFDAB9]/50 self-center mx-1" />
+
       <button type="button" onClick={format('bold')} className={`${btn} ${isBold ? btnActive : ''}`} title="굵게">
         <Bold className="w-4 h-4" style={{ color: '#8b6355' }} />
       </button>
@@ -113,14 +126,18 @@ function ToolbarPlugin({ contentBgColor = '#FFF9F5' }: { contentBgColor?: string
       <button type="button" onClick={format('strikethrough')} className={`${btn} ${isStrikethrough ? btnActive : ''}`} title="취소선">
         <Strikethrough className="w-4 h-4" style={{ color: '#8b6355' }} />
       </button>
+
       <span className="w-px h-6 bg-[#FFDAB9]/50 self-center mx-1" />
+
       <button type="button" onClick={insertList('bullet')} className={btn} title="글머리 기호">
         <List className="w-4 h-4" style={{ color: '#8b6355' }} />
       </button>
       <button type="button" onClick={insertList('number')} className={btn} title="번호 매기기">
         <ListOrdered className="w-4 h-4" style={{ color: '#8b6355' }} />
       </button>
+
       <span className="w-px h-6 bg-[#FFDAB9]/50 self-center mx-1" />
+
       <input
         ref={fileInputRef}
         type="file"
@@ -129,20 +146,18 @@ function ToolbarPlugin({ contentBgColor = '#FFF9F5' }: { contentBgColor?: string
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (!file) return
+
           fileToDataUrl(file)
             .then((src) => {
               editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src, altText: file.name })
             })
             .catch((err) => alert(err instanceof Error ? err.message : '이미지 업로드 실패'))
+
           e.target.value = ''
         }}
       />
-      <button
-        type="button"
-        onClick={() => fileInputRef.current?.click()}
-        className={btn}
-        title="이미지 삽입"
-      >
+
+      <button type="button" onClick={() => fileInputRef.current?.click()} className={btn} title="이미지 삽입">
         <span className="material-symbols-outlined text-[20px]" style={{ color: '#8b6355' }}>
           image
         </span>
@@ -174,38 +189,35 @@ export function DiaryEditor({
     editable: true,
   }
 
-  const handleChange = useCallback(
-    (
-      _editorState: import('lexical').EditorState,
-      editor: import('lexical').LexicalEditor
-    ) => {
-      editor.getEditorState().read(() => {
-        const root = $getRoot()
-        const plainText = root.getTextContent()
-        const html = $generateHtmlFromNodes(editor, null)
-        onChangeProp(html, plainText)
-      })
-    },
-    [onChangeProp]
-  )
+  // ✅ editor.getEditorState().read() 대신 editorState.read() 사용
+  const handleChange = useCallback((editorState: EditorState, editor: LexicalEditor) => {
+    editorState.read(() => {
+      const plainText = $getRoot().getTextContent()
+      const html = $generateHtmlFromNodes(editor, null)
+      onChangeProp(html, plainText)
+    })
+  }, [onChangeProp])
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <ToolbarPlugin contentBgColor={contentBgColor} />
       <ImagePlugin />
+
       <div className="relative">
         <RichTextPlugin
           contentEditable={
             <ContentEditable
               className="outline-none min-w-0 w-full px-4 py-3 resize-y"
-              style={{
-                minHeight,
-                color: contentTextColor,
-                backgroundColor: contentBgColor,
-              }}
+              style={{ minHeight, color: contentTextColor, backgroundColor: contentBgColor }}
               aria-placeholder={placeholder}
               placeholder={
-                <div style={{ color: contentTextColor === '#181210' ? 'rgba(141, 103, 94, 0.6)' : 'rgba(139, 99, 85, 0.5)' }}>
+                <div
+                  style={{
+                    color: contentTextColor === '#181210'
+                      ? 'rgba(141, 103, 94, 0.6)'
+                      : 'rgba(139, 99, 85, 0.5)',
+                  }}
+                >
                   {placeholder}
                 </div>
               }
@@ -214,13 +226,13 @@ export function DiaryEditor({
           ErrorBoundary={LexicalErrorBoundary}
         />
       </div>
+
       <ListPlugin />
       <LinkPlugin />
       <HistoryPlugin />
       <AutoFocusPlugin />
-      <OnChangePlugin
-        onChange={(editorState, editor) => handleChange(editorState, editor)}
-      />
+
+      <OnChangePlugin onChange={handleChange} />
     </LexicalComposer>
   )
 }

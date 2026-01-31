@@ -1,9 +1,18 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { DiaryEditor } from '../components/DiaryEditor'
 import { createDiary } from '../api/diaries'
 import { useDiariesContext } from '../context/DiariesContext'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from 'date-fns'
+import {
+  format,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isToday,
+} from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 const MOODS = [
@@ -23,8 +32,12 @@ const REFLECTIVE_PROMPTS = [
   '오늘 느꼈던 감정을 한 단어로 표현한다면?',
 ]
 
+// 작성 중 이탈 경고를 쓰고 싶으면 true, 원치 않으면 false
+const ENABLE_DIRTY_GUARD = true
+
 export function WritePage() {
   const { refetch } = useDiariesContext()
+
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [, setContentHtml] = useState('')
@@ -37,7 +50,26 @@ export function WritePage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const prompt = useMemo(() => REFLECTIVE_PROMPTS[Math.floor(Math.random() * REFLECTIVE_PROMPTS.length)], [])
+  const prompt = useMemo(
+    () => REFLECTIVE_PROMPTS[Math.floor(Math.random() * REFLECTIVE_PROMPTS.length)],
+    []
+  )
+
+  // ✅ unmount 이후 setState 방지
+  const isMountedRef = useRef(true)
+  // ✅ saved 타이머 정리
+  const savedTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      if (savedTimeoutRef.current !== null) {
+        window.clearTimeout(savedTimeoutRef.current)
+        savedTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const d = new Date(date)
@@ -65,6 +97,7 @@ export function WritePage() {
     const moodLabel = MOODS.find((m) => m.id === moodId)?.label ?? moodId
     const current = feel.split(/[,，\s]+/).filter(Boolean)
     const isDeselecting = selectedMood === moodId
+
     if (isDeselecting) {
       setSelectedMood(null)
       setFeel(current.filter((t) => t !== moodLabel).join(', '))
@@ -77,6 +110,7 @@ export function WritePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || !content.trim()) return
+    if (saving) return
 
     const feelList = feel
       .split(/[,，\s]+/)
@@ -85,6 +119,7 @@ export function WritePage() {
 
     setSaving(true)
     setSaveError(null)
+
     try {
       await createDiary({
         title: title.trim(),
@@ -92,6 +127,10 @@ export function WritePage() {
         feel: feelList,
         date,
       })
+
+      // ✅ 이동/언마운트 되었으면 종료
+      if (!isMountedRef.current) return
+
       setSaved(true)
       setTitle('')
       setContent('')
@@ -101,10 +140,20 @@ export function WritePage() {
       setDate(format(new Date(), 'yyyy-MM-dd'))
       setEditorKey((k) => k + 1)
       refetch()
-      setTimeout(() => setSaved(false), 3000)
+
+      // ✅ 타이머 중복 제거 후 재설정
+      if (savedTimeoutRef.current !== null) {
+        window.clearTimeout(savedTimeoutRef.current)
+      }
+      savedTimeoutRef.current = window.setTimeout(() => {
+        if (!isMountedRef.current) return
+        setSaved(false)
+      }, 3000)
     } catch (err) {
+      if (!isMountedRef.current) return
       setSaveError(err instanceof Error ? err.message : '저장 실패')
     } finally {
+      if (!isMountedRef.current) return
       setSaving(false)
     }
   }
@@ -115,6 +164,21 @@ export function WritePage() {
   const paddingStart = monthStart.getDay()
   const paddingEnd = 42 - paddingStart - days.length
 
+  // ✅ 취소 클릭 가드
+  const isDirty = !!title.trim() || !!content.trim() || !!feel.trim()
+  const handleCancelClick = (e: React.MouseEvent) => {
+    // 저장 중엔 이동 금지
+    if (saving) {
+      e.preventDefault()
+      return
+    }
+    // 작성 중이면 확인
+    if (ENABLE_DIRTY_GUARD && isDirty) {
+      const ok = window.confirm('작성 중인 내용이 있습니다. 이동하면 내용이 사라집니다. 이동하겠습니까?')
+      if (!ok) e.preventDefault()
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-full bg-[#FFF9F5]">
       <main className="flex-1 flex justify-center py-10 px-4">
@@ -123,30 +187,22 @@ export function WritePage() {
           <div className="flex flex-wrap justify-between items-end gap-4 p-4 mb-6">
             <div className="flex min-w-72 flex-col gap-2">
               <h1 className="text-[#181210] text-3xl md:text-4xl font-black leading-tight tracking-tight ">
-                새 일기 쓰기
+                오늘하루 어땠어?
               </h1>
               <p className="text-[#8d675e] text-base font-normal">생각을 페이지에 흘려보내세요.</p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              {saveError && (
-                <p className="text-red-500 text-sm">{saveError}</p>
-              )}
-              <div className="flex gap-3">
-              <Link
-                to="/read"
-                className="flex h-12 items-center justify-center rounded-xl border border-[#e7ddda] bg-transparent px-6 text-[#181210] font-bold text-sm hover:bg-white/50 transition-all"
-              >
-                취소
-              </Link>
-              <button
-                type="submit"
-                form="write-form"
-                disabled={!title.trim() || !content.trim() || saving}
-                className="flex h-12 items-center justify-center rounded-xl bg-[#ffb6a3] px-10 text-white font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-105 transition-all"
-                style={{ boxShadow: '0 10px 40px rgba(255, 182, 163, 0.3)' }}
-              >
-                {saving ? '저장 중...' : saved ? '저장됨!' : '저장'}
-              </button>
+              {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
+              <div className="flex gap-3"> 
+                <button
+                  type="submit"
+                  form="write-form"
+                  disabled={!title.trim() || !content.trim() || saving}
+                  className="flex h-12 items-center justify-center rounded-xl bg-[#ffb6a3] px-10 text-white font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-105 transition-all"
+                  style={{ boxShadow: '0 10px 40px rgba(255, 182, 163, 0.3)' }}
+                >
+                  {saving ? '저장 중...' : saved ? '저장됨!' : '저장'}
+                </button>
               </div>
             </div>
           </div>
@@ -253,15 +309,18 @@ export function WritePage() {
                     <span className="material-symbols-outlined">chevron_right</span>
                   </button>
                 </div>
+
                 <div className="grid grid-cols-7 gap-1 text-center">
                   {['일', '월', '화', '수', '목', '금', '토'].map((d) => (
                     <span key={d} className="text-[10px] font-bold text-[#8d675e]">
                       {d}
                     </span>
                   ))}
+
                   {Array.from({ length: paddingStart }).map((_, i) => (
                     <div key={`p-${i}`} className="h-8" />
                   ))}
+
                   {days.map((d) => {
                     const isSelected = date === format(d, 'yyyy-MM-dd')
                     const isCurMonth = isSameMonth(d, calendarMonth)
@@ -280,37 +339,13 @@ export function WritePage() {
                       </button>
                     )
                   })}
+
                   {Array.from({ length: paddingEnd }).map((_, i) => (
                     <div key={`e-${i}`} className="h-8" />
                   ))}
                 </div>
               </div>
-
-              {/* Suggested Tags */}
-              <div className="rounded-2xl bg-white border border-[#e7ddda] p-5 shadow-sm">
-                <h4 className="text-[#181210] text-sm font-bold mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#ffb6a3] text-lg">auto_awesome</span>
-                  추천 태그
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTED_TAGS.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => addTag(tag)}
-                      className="px-3 py-1 bg-[#ffb6a3]/10 text-[#ffb6a3] border border-[#ffb6a3]/20 rounded-full text-xs font-medium hover:bg-[#ffb6a3]/20 transition-all"
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                  {feel && (
-                    <div className="w-full mt-2 pt-2 border-t border-[#e7ddda]">
-                      <p className="text-[10px] text-[#8d675e] mb-1">선택됨</p>
-                      <p className="text-xs text-[#181210] break-words">{feel}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+ 
 
               {/* Reflective Prompt */}
               <div className="rounded-2xl bg-[#ffb6a3]/5 border border-[#ffb6a3]/10 p-5">
@@ -323,9 +358,7 @@ export function WritePage() {
       </main>
 
       <footer className="mt-auto py-8 text-center border-t border-[#e7ddda]">
-        <p className="text-[#8d675e] text-xs font-medium">
-          기록은 로컬에 안전하게 보관됩니다. © OUTBRAIN
-        </p>
+        <p className="text-[#8d675e] text-xs font-medium">기록은 로컬에 안전하게 보관됩니다. © OUTBRAIN</p>
       </footer>
     </div>
   )

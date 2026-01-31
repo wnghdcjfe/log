@@ -7,29 +7,44 @@ const NAV_ITEMS = [
   { path: '/insight', label: '인사이트' },
 ] as const
 
+function isActivePath(currentPath: string, navPath: string): boolean {
+  return currentPath === navPath || currentPath.startsWith(navPath + '/')
+}
+
 export function Layout() {
-  const location = useLocation()
+  const { pathname } = useLocation()
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFF9F5] font-sans">
       <header
         className="shrink-0 px-4 py-4"
-        style={{ background: 'linear-gradient(135deg, #FFDAB9 0%, #FFB6A3 100%)' }}
+        style={{
+          background: 'linear-gradient(135deg, #FFDAB9 0%, #FFB6A3 100%)',
+        }}
       >
         <div className="flex items-center justify-between gap-4">
-          <Link to="/search" className=" font-bold text-lg tracking-tight text-[#8b6355]">
+          <Link
+            to="/search"
+            className="font-bold text-lg tracking-tight text-[#8b6355]"
+          >
             OUTBRAIN
           </Link>
+
           <nav className="flex items-center gap-1 flex-wrap">
             {NAV_ITEMS.map(({ path, label }) => {
-              const isActive = location.pathname === path
+              const isActive = isActivePath(pathname, path)
+
               return (
                 <Link
                   key={path}
                   to={path}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    isActive ? 'bg-white/80 text-[#e89580]' : 'text-[#8b6355] hover:bg-white/50'
-                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={[
+                    'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+                    isActive
+                      ? 'bg-white/80 text-[#e89580] shadow-sm'
+                      : 'text-[#8b6355] hover:bg-white/50',
+                  ].join(' ')}
                 >
                   {label}
                 </Link>

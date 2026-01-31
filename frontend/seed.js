@@ -1,67 +1,84 @@
 import dotenv from 'dotenv'
 import express from 'express'
 import cors from 'cors'
-import mongoose from 'mongoose'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
-// 기존꺼를 삭제하고 다시 넣는다. 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: join(__dirname, '../.env') })
 
-// Schema
-const DiarySchema = new mongoose.Schema(
-  { title: String, date: Date, feel: [String], content: String },
-  { timestamps: true }
-)
-const Diary = mongoose.models.Diary ?? mongoose.model('Diary', DiarySchema)
+const BACKEND_URL = process.env.VITE_BACKEND_URL || 'http://localhost:8000'
+const API_BASE = `${BACKEND_URL}/api/v1/records`
 
-// Seed
+// Seed using backend API
 async function seed() {
-  await mongoose.connect(process.env.MONGODB_URI, {
-    dbName: process.env.MONGODB_DATABASE ?? 'outbrain',
-  })
   const raw = JSON.parse(
     readFileSync(join(__dirname, '../data/data1.json'), 'utf-8')
   )
-  const data = raw.map((d) => ({
-    title: d.title,
-    date: new Date(d.date),
-    feel: d.feel ?? [],
-    content: d.content ?? '',
-  }))
-  await Diary.deleteMany({})
-  await Diary.insertMany(data)
-  console.log(`Inserted ${data.length} diaries`)
-  await mongoose.disconnect()
-  process.exit(0)
+
+  console.log(`Starting to seed ${raw.length} diaries via backend API...`)
+
+  // First, get all existing records and delete them
+  try {
+    const existingRes = await fetch(API_BASE)
+    if (existingRes.ok) {
+      const existing = await existingRes.json()
+      console.log(`Found ${existing.length} existing records, deleting...`)
+
+      for (const record of existing) {
+        await fetch(`${API_BASE}/${record.id}`, { method: 'DELETE' })
+      }
+      console.log('Existing records deleted')
+    }
+  } catch (e) {
+    console.warn('Could not delete existing records:', e.message)
+  }
+
+  // Insert new records via backend API
+  let successCount = 0
+  let errorCount = 0
+
+  for (const item of raw) {
+    try {
+      const payload = {
+        title: item.title,
+        content: item.content ?? '',
+        feel: Array.isArray(item.feel) ? item.feel : [],
+        date: item.date,
+        userId: 'default',
+      }
+
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || `Failed with status ${res.status}`)
+      }
+
+      successCount++
+      console.log(`✓ [${successCount}/${raw.length}] ${item.title}`)
+    } catch (e) {
+      errorCount++
+      console.error(`✗ Failed to insert "${item.title}":`, e.message)
+    }
+  }
+
+  console.log(`\nSeeding completed: ${successCount} succeeded, ${errorCount} failed`)
+  process.exit(errorCount > 0 ? 1 : 0)
 }
 
 if (process.argv.includes('seed')) {
   seed().catch((e) => {
-    console.error(e)
+    console.error('Seed error:', e)
     process.exit(1)
   })
 } else {
-  ;(async () => {
-    const app = express()
-    app.use(cors())
-    app.use(express.json())
-
-    app.get('/api/diaries', async (_req, res) => {
-      try {
-        const docs = await Diary.find().sort({ date: 1 }).lean()
-        res.json(docs.map((d) => ({ id: String(d._id), ...d })))
-      } catch (e) {
-        res.status(500).json({ error: 'Failed' })
-      }
-    })
-
-    await mongoose.connect(process.env.MONGODB_URI, {
-      dbName: process.env.MONGODB_DATABASE ?? 'outbrain',
-    })
-    const PORT = process.env.PORT ?? 3001
-    app.listen(PORT, () => console.log(`http://localhost:${PORT}`))
-  })()
+  console.log('Run with "seed" argument to seed data: node seed.js seed')
+  console.log('Make sure backend server is running before seeding.')
+  process.exit(0)
 }

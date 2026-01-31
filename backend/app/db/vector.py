@@ -19,7 +19,7 @@ class VectorDB:
         In Atlas Vector Search, you typically store the vector directly in the document.
         So this method might just update the existing record with the vector field.
         """
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database not connected")
 
         collection = mongo_db.db[settings.COLLECTION_NAME]
@@ -32,7 +32,7 @@ class VectorDB:
         """
         Perform vector search using $vectorSearch aggregation stage.
         """
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database not connected")
 
         collection = mongo_db.db[settings.COLLECTION_NAME]

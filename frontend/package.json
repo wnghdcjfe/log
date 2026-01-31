@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "node seed.js seed"
   },
   "dependencies": {
     "@lexical/code": "^0.39.0",

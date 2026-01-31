@@ -4,12 +4,18 @@ import { Layout } from './components/Layout'
 import { SearchPage } from './pages/SearchPage'
 import { WritePage } from './pages/WritePage'
 import { ReadPage } from './pages/ReadPage'
-import { InsightPage } from './pages/InsightPage'
+import { InsightPage } from './pages/InsightPage' 
+
 
 function App() {
   return (
     <DiariesProvider>
-      <BrowserRouter>
+      <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+            >
         <Routes>
           <Route element={<Layout />}>
             <Route path="/search" element={<SearchPage />} />

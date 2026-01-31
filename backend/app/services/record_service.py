@@ -4,14 +4,16 @@ from typing import List, Optional
 from bson import ObjectId
 from app.models.schemas.record_req import RecordResponse, UpdateRecordRequest
 from app.db.mongo import mongo_db
+from app.core.config import get_settings
+
+settings = get_settings()
 
 
 class RecordService:
     @staticmethod
     def _doc_to_response(doc: dict) -> RecordResponse:
-        meta = doc.get("meta") or {}
-        feel = meta.get("feel") or []
-        date_str = meta.get("date") or ""
+        feel = doc.get("feel") or []
+        date_str = doc.get("date") or ""
         return RecordResponse(
             id=str(doc["_id"]),
             title=doc.get("title", ""),
@@ -23,9 +25,9 @@ class RecordService:
 
     @staticmethod
     async def list_records(user_id: Optional[str] = None) -> List[RecordResponse]:
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database connection not established")
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
         query = {"deletedAt": None}
         if user_id:
             query["userId"] = user_id
@@ -37,11 +39,11 @@ class RecordService:
 
     @staticmethod
     async def get_record(record_id: str) -> Optional[RecordResponse]:
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database connection not established")
         if not ObjectId.is_valid(record_id):
             return None
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
         doc = await collection.find_one(
             {"_id": ObjectId(record_id), "deletedAt": None}
         )
@@ -53,11 +55,11 @@ class RecordService:
     async def update_record(
         record_id: str, request: UpdateRecordRequest
     ) -> Optional[RecordResponse]:
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database connection not established")
         if not ObjectId.is_valid(record_id):
             return None
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
         doc = await collection.find_one(
             {"_id": ObjectId(record_id), "deletedAt": None}
         )
@@ -68,13 +70,10 @@ class RecordService:
             update["title"] = request.title
         if request.content is not None:
             update["content"] = request.content
-        meta = dict(doc.get("meta") or {})
         if request.feel is not None:
-            meta["feel"] = request.feel
+            update["feel"] = request.feel
         if request.date is not None:
-            meta["date"] = request.date.isoformat()
-        if meta:
-            update["meta"] = meta
+            update["date"] = request.date.isoformat()
         result = await collection.find_one_and_update(
             {"_id": ObjectId(record_id), "deletedAt": None},
             {"$set": update},
@@ -86,11 +85,11 @@ class RecordService:
 
     @staticmethod
     async def delete_record(record_id: str) -> bool:
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database connection not established")
         if not ObjectId.is_valid(record_id):
             return False
-        collection = mongo_db.db.records
+        collection = mongo_db.db[settings.COLLECTION_NAME]
         result = await collection.find_one_and_update(
             {"_id": ObjectId(record_id), "deletedAt": None},
             {"$set": {"deletedAt": datetime.now()}},

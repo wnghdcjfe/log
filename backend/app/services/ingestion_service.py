@@ -33,7 +33,7 @@ class IngestionService:
         )
 
         # 4. MongoDB 저장
-        if not mongo_db.db:
+        if mongo_db.db is None:
             raise Exception("Database connection not established")
 
         collection = mongo_db.db[settings.COLLECTION_NAME]
