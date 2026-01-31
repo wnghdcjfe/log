@@ -12,6 +12,32 @@ class MockNode(dict):
         self.labels = labels
 
 
+class AsyncIterator:
+    """Helper class for async iteration in tests."""
+
+    def __init__(self, items):
+        self.items = iter(items)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self.items)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
+class MockRecord:
+    """Mock Neo4j record that supports .get() method."""
+
+    def __init__(self, data):
+        self._data = data
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+
 @pytest.mark.asyncio
 async def test_connect_success():
     db = Neo4jDB()
@@ -65,9 +91,6 @@ async def test_get_context_subgraph_success():
 
     Neo4jDB.driver = mock_driver
 
-    mock_result = AsyncMock()
-    mock_session.run.return_value = mock_result
-
     # Create a mock node that behaves like a Neo4j node
     mock_node = MockNode("node1", {"Person"}, {"name": "Alice"})
 
@@ -75,8 +98,12 @@ async def test_get_context_subgraph_success():
     mock_path.nodes = [mock_node]
     mock_path.relationships = []
 
-    mock_record = {"path": mock_path}
-    mock_result.list.return_value = [mock_record]
+    # Create mock record using the MockRecord class
+    mock_record = MockRecord({"path": mock_path})
+
+    # Return an async iterator for the result
+    mock_result = AsyncIterator([mock_record])
+    mock_session.run.return_value = mock_result
 
     graph = await db.get_context_subgraph("user1", ["rec1"])
 

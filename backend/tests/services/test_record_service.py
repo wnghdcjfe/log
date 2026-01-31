@@ -30,13 +30,14 @@ def mock_mongo():
 async def test_list_records(mock_mongo):
     service = RecordService()
     mock_collection = MagicMock()
-    mock_mongo.db.records = mock_collection  # accessing property records
+    mock_mongo.db.__getitem__.return_value = mock_collection
 
     doc = {
         "_id": ObjectId("507f1f77bcf86cd799439011"),
         "title": "T",
         "content": "C",
-        "meta": {"feel": ["Happy"], "date": "2023-01-01"},
+        "feel": ["Happy"],
+        "date": "2023-01-01",
         "userId": "u1",
     }
 
@@ -55,7 +56,7 @@ async def test_list_records(mock_mongo):
 async def test_get_record_success(mock_mongo):
     service = RecordService()
     mock_collection = MagicMock()
-    mock_mongo.db.records = mock_collection
+    mock_mongo.db.__getitem__.return_value = mock_collection
 
     doc = {"_id": ObjectId("507f1f77bcf86cd799439011"), "title": "T"}
     mock_collection.find_one = AsyncMock(return_value=doc)
@@ -70,7 +71,7 @@ async def test_get_record_success(mock_mongo):
 async def test_get_record_not_found(mock_mongo):
     service = RecordService()
     mock_collection = MagicMock()
-    mock_mongo.db.records = mock_collection
+    mock_mongo.db.__getitem__.return_value = mock_collection
 
     mock_collection.find_one = AsyncMock(return_value=None)
 
@@ -82,7 +83,7 @@ async def test_get_record_not_found(mock_mongo):
 async def test_update_record_success(mock_mongo):
     service = RecordService()
     mock_collection = MagicMock()
-    mock_mongo.db.records = mock_collection
+    mock_mongo.db.__getitem__.return_value = mock_collection
 
     oid = "507f1f77bcf86cd799439011"
 
@@ -107,7 +108,7 @@ async def test_update_record_success(mock_mongo):
 async def test_delete_record_success(mock_mongo):
     service = RecordService()
     mock_collection = MagicMock()
-    mock_mongo.db.records = mock_collection
+    mock_mongo.db.__getitem__.return_value = mock_collection
 
     mock_collection.find_one_and_update = AsyncMock(return_value={"_id": ObjectId()})
 
