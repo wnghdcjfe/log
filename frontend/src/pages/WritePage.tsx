@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { DiaryEditor } from '../components/DiaryEditor'
+import { createDiary } from '../api/diaries'
+import { useDiariesContext } from '../context/DiariesContext'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -22,15 +24,18 @@ const REFLECTIVE_PROMPTS = [
 ]
 
 export function WritePage() {
+  const { refetch } = useDiariesContext()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [contentHtml, setContentHtml] = useState('')
+  const [, setContentHtml] = useState('')
   const [editorKey, setEditorKey] = useState(0)
   const [feel, setFeel] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const prompt = useMemo(() => REFLECTIVE_PROMPTS[Math.floor(Math.random() * REFLECTIVE_PROMPTS.length)], [])
 
@@ -69,25 +74,24 @@ export function WritePage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || !content.trim()) return
 
-    const diary = {
-      title: title.trim(),
-      content: content.trim(),
-      contentHtml: contentHtml || content.trim(),
-      feel: feel
-        .split(/[,，\s]+/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-      date,
-    }
+    const feelList = feel
+      .split(/[,，\s]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
 
+    setSaving(true)
+    setSaveError(null)
     try {
-      const list = JSON.parse(localStorage.getItem('outbrain-drafts') ?? '[]')
-      list.unshift({ ...diary, id: `draft-${Date.now()}` })
-      localStorage.setItem('outbrain-drafts', JSON.stringify(list.slice(0, 50)))
+      await createDiary({
+        title: title.trim(),
+        content: content.trim(),
+        feel: feelList,
+        date,
+      })
       setSaved(true)
       setTitle('')
       setContent('')
@@ -96,10 +100,12 @@ export function WritePage() {
       setSelectedMood(null)
       setDate(format(new Date(), 'yyyy-MM-dd'))
       setEditorKey((k) => k + 1)
+      refetch()
       setTimeout(() => setSaved(false), 3000)
-    } catch {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : '저장 실패')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -121,7 +127,11 @@ export function WritePage() {
               </h1>
               <p className="text-[#8d675e] text-base font-normal">생각을 페이지에 흘려보내세요.</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col items-end gap-2">
+              {saveError && (
+                <p className="text-red-500 text-sm">{saveError}</p>
+              )}
+              <div className="flex gap-3">
               <Link
                 to="/read"
                 className="flex h-12 items-center justify-center rounded-xl border border-[#e7ddda] bg-transparent px-6 text-[#181210] font-bold text-sm hover:bg-white/50 transition-all"
@@ -131,12 +141,13 @@ export function WritePage() {
               <button
                 type="submit"
                 form="write-form"
-                disabled={!title.trim() || !content.trim()}
+                disabled={!title.trim() || !content.trim() || saving}
                 className="flex h-12 items-center justify-center rounded-xl bg-[#ffb6a3] px-10 text-white font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-105 transition-all"
                 style={{ boxShadow: '0 10px 40px rgba(255, 182, 163, 0.3)' }}
               >
-                {saved ? '저장됨!' : '저장'}
+                {saving ? '저장 중...' : saved ? '저장됨!' : '저장'}
               </button>
+              </div>
             </div>
           </div>
 

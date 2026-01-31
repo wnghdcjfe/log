@@ -8,7 +8,6 @@ class Record(BaseModel):
     recordId: str = Field(default_factory=lambda: str(uuid.uuid4()))
     userId: str
     title: str
-    title: str
     content: str
     meta: Dict[str, Any]  # feel, date for hybrid search
 

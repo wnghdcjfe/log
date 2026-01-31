@@ -8,7 +8,6 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
-import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   $getRoot,
@@ -23,8 +22,6 @@ import { $generateHtmlFromNodes } from '@lexical/html'
 import { ListNode, ListItemNode } from '@lexical/list'
 import { LinkNode } from '@lexical/link'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
-import { CodeNode } from '@lexical/code'
-import { TRANSFORMERS } from '@lexical/markdown'
 import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Undo2, Redo2 } from 'lucide-react'
 import { ImageNode } from '../nodes/ImageNode'
 import { ImagePlugin, INSERT_IMAGE_COMMAND, fileToDataUrl } from './ImagePlugin'
@@ -55,7 +52,6 @@ const initialNodes = [
   ListNode,
   ListItemNode,
   LinkNode,
-  CodeNode,
   ImageNode,
 ]
 
@@ -197,7 +193,6 @@ export function DiaryEditor({
     <LexicalComposer initialConfig={initialConfig}>
       <ToolbarPlugin contentBgColor={contentBgColor} />
       <ImagePlugin />
-      <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
       <div className="relative">
         <RichTextPlugin
           contentEditable={

@@ -3,35 +3,21 @@ import { useDiariesContext } from '../context/DiariesContext'
 import { KeywordGraph } from '../components/KeywordGraph'
 import { GraphDetailPanel } from '../components/GraphDetailPanel'
 import { SearchBar } from '../components/SearchBar'
-import { QuestionUI } from '../components/QuestionUI'
 import { NodeDetailPanel } from '../components/NodeDetailPanel'
-import { Timeline } from '../components/Timeline'
-import type { RecordNode, SearchResult, QuestionResult } from '../data/mockData'
+import type { RecordNode, SearchResult } from '../data/mockData'
 
 export function SearchPage() {
-  const { nodes, timelineEvents, questionResults, findSearchResult, loading } = useDiariesContext()
+  const { nodes, findSearchResult, loading } = useDiariesContext()
   const [searchQuery, setSearchQuery] = useState('')
-  const [, setSearchHistory] = useState<SearchResult[]>([])
   const [selectedSearch, setSelectedSearch] = useState<SearchResult | null>(null)
-  const [selectedQuestion, setSelectedQuestion] = useState<QuestionResult | null>(null)
   const [selectedNode, setSelectedNode] = useState<RecordNode | null>(null)
   const [showOriginal, setShowOriginal] = useState(false)
   const [onlyMatches, setOnlyMatches] = useState(true)
-  const [, _setTimelineNodeIds] = useState<string[]>([])
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [showTimeline, setShowTimeline] = useState(false)
-  const [showQuestions, setShowQuestions] = useState(false)
 
   const handleSearch = (query: string) => {
     if (!query.trim()) return
     const result = findSearchResult(query)
-    if (result) {
-      setSelectedSearch(result)
-      setSearchHistory((prev) => {
-        const next = prev.filter((r) => r.query !== result.query)
-        return [result, ...next].slice(0, 5)
-      })
-    }
+    if (result) setSelectedSearch(result)
     setSearchQuery(query)
   }
 
@@ -112,7 +98,7 @@ export function SearchPage() {
                   드래그로 노드 이동, 휠로 줌, 빈 공간 드래그로 이동 가능합니다.
                 </div>
                 <KeywordGraph
-                  query={searchQuery}
+                  query={selectedSearch?.query ?? ''}
                   nodes={displayNodes}
                   matchedNodeIds={matchedNodeIds}
                   onlyMatches={onlyMatches}
@@ -142,46 +128,7 @@ export function SearchPage() {
             node={selectedNode}
             onClose={() => setShowOriginal(false)}
           />
-        )}
-
-        <div className="absolute right-4 top-4 z-10">
-          <button
-            onClick={() => setShowQuestions((v) => !v)}
-            className="px-3 py-2 rounded-lg border shadow text-sm transition-colors"
-            style={{ backgroundColor: '#FFF9F5', borderColor: '#FFB6A3', color: '#8b6355' }}
-          >
-            질문
-          </button>
-          {showQuestions && (
-            <div className="mt-2 w-64">
-              <QuestionUI
-                questions={questionResults}
-                selectedQuestion={selectedQuestion}
-                onSelectQuestion={setSelectedQuestion}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="absolute left-4 bottom-4 z-10">
-          <button
-            onClick={() => setShowTimeline((v) => !v)}
-            className="px-3 py-2 rounded-lg border shadow text-sm transition-colors"
-            style={{ backgroundColor: '#FFF9F5', borderColor: '#FFB6A3', color: '#8b6355' }}
-          >
-            타임라인
-          </button>
-          {showTimeline && (
-            <div className="mt-2 w-64 max-h-64 overflow-y-auto">
-              <Timeline
-                events={timelineEvents}
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                onSelectNodeIds={_setTimelineNodeIds}
-              />
-            </div>
-          )}
-        </div>
+        )} 
       </div>
     </div>
   )

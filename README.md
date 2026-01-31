@@ -5,26 +5,29 @@
 1. `.env` 파일 확인 (프로젝트 루트)
 ```
 MONGODB_URI=mongodb+srv://...
-MONGODB_DATABASE=outbrain
+MONGODB_DATABASE=memory_db
 ```
 
-2. MongoDB 시드 (data1.json → MongoDB, date는 Date 타입으로 변환)
+2. 백엔드 실행 (FastAPI)
 ```bash
-cd backend && npm run seed
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# http://localhost:8000
 ```
 
-3. 백엔드 실행 (단일 파일 `index.js`)
-```bash
-cd backend && npm start
-# http://localhost:3001
-```
-
-4. 프론트엔드 실행
+3. 프론트엔드 실행
 ```bash
 cd frontend && npm run dev
 # http://localhost:5173
 ```
 
-## API
+프론트는 `/api` 요청을 `http://localhost:8000`으로 프록시합니다.
 
-- `GET /api/diaries` - 전체 일기 목록 (date는 ISO 문자열로 반환)
+## API (백엔드)
+
+- `GET /api/v1/records` - 전체 일기 목록
+- `GET /api/v1/records/{id}` - 일기 상세
+- `POST /api/v1/records` - 일기 생성 (title, content, feel, date, userId)
+- `PUT /api/v1/records/{id}` - 일기 수정
+- `DELETE /api/v1/records/{id}` - 일기 삭제 (soft delete)

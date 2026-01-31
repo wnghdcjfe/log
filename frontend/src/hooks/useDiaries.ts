@@ -39,7 +39,9 @@ export function useDiaries() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
+    setLoading(true)
+    setError(null)
     fetchDiaries()
       .then((apiDiaries) => {
         const transformed = transformDiaries(apiDiaries)
@@ -56,6 +58,10 @@ export function useDiaries() {
         setLoading(false)
       })
   }, [])
+
+  useEffect(() => {
+    refetch()
+  }, [refetch])
 
   const findSearchResult = useCallback(
     (query: string): SearchResult | null => {
@@ -86,5 +92,6 @@ export function useDiaries() {
     findSearchResult,
     loading,
     error,
+    refetch,
   }
 }

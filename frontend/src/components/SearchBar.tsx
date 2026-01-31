@@ -28,6 +28,9 @@ export function SearchBar({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.preventDefault()
+          }}
           placeholder={placeholder}
           className="w-full pl-12 pr-24 py-3.5 rounded-2xl border-2 bg-[#FFF9F5]
             text-[#8b6355] placeholder:text-[#8b6355]/50

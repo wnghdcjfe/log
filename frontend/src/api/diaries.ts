@@ -8,6 +8,9 @@ export interface ApiDiary {
   content: string
 }
 
+const API_BASE = '/api/v1/records'
+const DEFAULT_USER_ID = 'default'
+
 function toRecordNode(d: ApiDiary): RecordNode {
   const date = typeof d.date === 'string' ? d.date : new Date(d.date).toISOString()
   const dateOnly = date.split('T')[0]
@@ -80,9 +83,73 @@ function buildSearchResult(query: string, nodes: RecordNode[], edges: GraphEdge[
 }
 
 export async function fetchDiaries(): Promise<ApiDiary[]> {
-  const res = await fetch('/api/diaries')
-  if (!res.ok) throw new Error('Failed to fetch')
+  const res = await fetch(API_BASE)
+  if (!res.ok) throw new Error('Failed to fetch diaries')
+  const data = await res.json()
+  return data.map((d: { id: string; title: string; date: string; feel: string[]; content: string }) => ({
+    id: d.id,
+    title: d.title,
+    date: d.date,
+    feel: Array.isArray(d.feel) ? d.feel : [],
+    content: d.content ?? '',
+  }))
+}
+
+export interface CreateDiaryInput {
+  title: string
+  content: string
+  feel: string[]
+  date: string
+}
+
+export async function createDiary(input: CreateDiaryInput): Promise<{ recordId: string }> {
+  const res = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...input,
+      userId: DEFAULT_USER_ID,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail ?? 'Failed to create diary')
+  }
   return res.json()
+}
+
+export interface UpdateDiaryInput {
+  title?: string
+  content?: string
+  feel?: string[]
+  date?: string
+}
+
+export async function updateDiary(id: string, input: UpdateDiaryInput): Promise<ApiDiary> {
+  const payload: Record<string, unknown> = {}
+  if (input.title !== undefined) payload.title = input.title
+  if (input.content !== undefined) payload.content = input.content
+  if (input.feel !== undefined) payload.feel = input.feel
+  if (input.date !== undefined) payload.date = input.date
+  const res = await fetch(`${API_BASE}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail ?? 'Failed to update diary')
+  }
+  const d = await res.json()
+  return { id: d.id, title: d.title, date: d.date, feel: d.feel ?? [], content: d.content ?? '' }
+}
+
+export async function deleteDiary(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail ?? 'Failed to delete diary')
+  }
 }
 
 export function transformDiaries(apiDiaries: ApiDiary[]) {

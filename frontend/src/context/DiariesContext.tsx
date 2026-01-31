@@ -10,6 +10,7 @@ interface DiariesContextValue {
   findSearchResult: (query: string) => SearchResult | null
   loading: boolean
   error: string | null
+  refetch: () => void
 }
 
 const DiariesContext = createContext<DiariesContextValue | null>(null)
