@@ -26,7 +26,8 @@ class IngestionService:
             userId=request.userId,
             title=request.title,
             content=request.content,
-            meta={"feel": request.feel, "date": request.date.isoformat()},
+            feel=request.feel,
+            date=request.date.isoformat(),
             createdAt=datetime.now(),
             embedding=embedding,
         )
