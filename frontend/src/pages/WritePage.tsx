@@ -210,7 +210,7 @@ export function WritePage() {
                   <DiaryEditor
                     key={editorKey}
                     onChange={handleEditorChange}
-                    placeholder="오늘 하루 어땠나요?"
+                    placeholder=""
                     minHeight="380px"
                     contentBgColor="#ffffff"
                     contentTextColor="#181210"
