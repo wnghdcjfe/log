@@ -1,6 +1,4 @@
-import dotenv from 'dotenv'
-import express from 'express'
-import cors from 'cors'
+import dotenv from 'dotenv' 
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -14,7 +12,7 @@ const API_BASE = `${BACKEND_URL}/api/v1/records`
 // Seed using backend API
 async function seed() {
   const raw = JSON.parse(
-    readFileSync(join(__dirname, '../data/data1.json'), 'utf-8')
+    readFileSync(join(__dirname, '../data/data2.json'), 'utf-8')
   )
 
   console.log(`Starting to seed ${raw.length} diaries via backend API...`)
