@@ -3,7 +3,7 @@ import { useDiariesContext } from '@/context/DiariesContext'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import type { RecordNode } from '@/data/mockData'
-import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Trash2, Copy, Check } from 'lucide-react'
 import { updateDiary, deleteDiary } from '@/api/diaries'
 
 interface DiaryItem {
@@ -39,6 +39,7 @@ export function ReadPage() {
   const [editDate, setEditDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const filteredDiaries = useMemo(() => {
     if (!searchKeyword.trim()) return allDiaries
@@ -97,6 +98,20 @@ export function ReadPage() {
       setExpandedId((prev) => (prev === id ? null : prev))
     } catch (err) {
       alert(err instanceof Error ? err.message : '삭제 실패')
+    }
+  }
+
+  const handleCopy = async (d: DiaryItem) => {
+    const dateFormatted = format(parseISO(d.date), 'yyyy년 M월 d일', { locale: ko })
+    const emotionTag = d.emotion ? ` [${d.emotion}]` : ''
+    const textToCopy = `${dateFormatted}${emotionTag}\n\n${d.title}\n\n${d.content}`
+
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      setCopiedId(d.id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      alert('복사에 실패했습니다.')
     }
   }
 
@@ -232,19 +247,21 @@ export function ReadPage() {
                     <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
-                        onClick={() => startEdit(d)}
+                        onClick={() => handleCopy(d)}
                         className="p-1.5 rounded-lg transition-colors hover:bg-[#FFDAB9]/50"
-                        style={{ color: '#8b6355' }}
-                        aria-label="수정"
+                        style={{ color: copiedId === d.id ? '#22c55e' : '#8b6355' }}
+                        aria-label="복사"
+                        title="일기 복사"
                       >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                        {copiedId === d.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button> 
                       <button
                         type="button"
                         onClick={() => handleDelete(d.id)}
                         className="p-1.5 rounded-lg transition-colors hover:bg-red-100"
                         style={{ color: '#8b6355' }}
                         aria-label="삭제"
+                        title="일기 삭제"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
