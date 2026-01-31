@@ -20,10 +20,16 @@ class ReasoningService:
         # 1. Embed Question
         query_embedding = await llm_service.get_embedding(request.text)
 
-        # 2. Vector Search (Retrieve 'Seed Records')
-        # Apply userId filter directly in vector search for performance
+        # 2. Hybrid Search (Vector + Text)
+        # 벡터 검색(의미 기반)과 텍스트 검색(키워드 기반)을 결합하여 검색 품질 향상
         vector_results = await vector_db.search(
-            query_vector=query_embedding, user_id=request.userId, top_k=5
+            query_vector=query_embedding,
+            user_id=request.userId,
+            top_k=5,
+            query_text=request.text,  # 하이브리드 검색을 위한 원본 텍스트
+            use_hybrid=True,
+            vector_weight=0.5,
+            text_weight=0.5,
         )
 
         # Use MongoDB _id for frontend compatibility
