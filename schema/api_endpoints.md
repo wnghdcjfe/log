@@ -6,14 +6,13 @@
 
 ### 기록 생성 (Create Record)
 *   **엔드포인트**: `POST /records`
-*   **설명**: 새로운 기록(일기)을 생성하고 저장합니다. 서버는 `createdAt`이 제공되지 않으면 자동으로 할당합니다. 또한 감정 추출 파이프라인을 트리거합니다.
+*   **설명**: 새로운 기록(일기)을 생성하고 저장합니다. 서버는 `createdAt`이 제공되지 않으면 자동으로 할당합니다.
 *   **입력 (Input)**:
+    *   `title` (string, 필수): 기록 제목.
     *   `content` (string, 필수): 기록의 본문 내용.
+    *   `feel` (array[string], 필수): 사용자가 입력한 기분/감정 리스트.
+    *   `date` (date, 필수): 기록 날짜.
     *   `userId` (string, 필수): 사용자 ID.
-    *   `people` (array, 선택): 언급된 인물 목록.
-    *   `places` (array, 선택): 언급된 장소 목록.
-    *   `emotionTags` (array, 선택): 감정 태그 목록.
-    *   `source` (string, 선택): 기록의 출처.
 *   **출력 (Output)**:
     *   `recordId` (string): 생성된 기록의 고유 ID.
 

@@ -21,21 +21,18 @@
 
 1. **Record 스키마 정의**
 
-   * 필수: `recordId, userId, content, createdAt`
-   * 선택: `people[], places[], emotionTags[], source`
+   * 필수: `recordId, userId, title, date, content, feel[], createdAt`
    * 수정/삭제를 고려해 `updatedAt, deletedAt` 포함
 
 2. **입력 API**
 
-   * `POST /records` : content + optional metadata 입력
+   * `POST /records` : `title, content, feel(list), date, userId` 입력
    * 서버에서 `createdAt` 자동 부여
    * 응답: `recordId`
 
-3. **감정 자동 추출 모듈**
-
-   * 입력 content → llm을 통한 감정 라벨/점수 산출
-   * 추출 결과는 record metadata로 저장
-   * 실패 시 graceful fallback(unknown)
+3.  **감정/정보 입력**
+   * (MVP) 프론트엔드에서 `feel` (감정 키워드 리스트), `title`, `date`를 직접 입력받음.
+   * 자동 추출 모듈은 MVP 이후 고도화 예정.
 
 4. **FR-A0 mock 데이터 삽입 스크립트**
 
