@@ -30,6 +30,23 @@ class LLMServiceInterface(ABC):
     async def extract_entities(self, text: str) -> GraphData:
         pass
 
+    @abstractmethod
+    async def rerank(
+        self, query: str, documents: List[dict], top_k: int = 5
+    ) -> List[dict]:
+        """
+        검색 결과를 질문과의 관련성에 따라 재순위화.
+
+        Args:
+            query: 사용자 질문
+            documents: 검색된 문서 리스트 (각 문서는 'content' 필드 필요)
+            top_k: 반환할 상위 문서 수
+
+        Returns:
+            재순위화된 문서 리스트 (relevance_score 필드 추가됨)
+        """
+        pass
+
 
 class NvidiaLLMService(LLMServiceInterface):
     """
@@ -283,6 +300,82 @@ class NvidiaLLMService(LLMServiceInterface):
             emotions=["Neutral"],
         )
 
+    async def rerank(
+        self, query: str, documents: List[dict], top_k: int = 5
+    ) -> List[dict]:
+        """
+        LLM 기반 Reranking: 질문과 각 문서의 관련성을 평가하여 재순위화.
+        """
+        if not documents:
+            return []
+
+        if not settings.NVIDIA_API_KEY:
+            print("WARNING: NVIDIA_API_KEY not set. Returning original order.")
+            return documents[:top_k]
+
+        headers = {
+            "Authorization": f"Bearer {settings.NVIDIA_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        # 문서들을 번호와 함께 포맷팅
+        docs_text = "\n".join(
+            [
+                f"[문서 {i+1}] {doc.get('title', '제목 없음')}: {doc.get('content', '')[:500]}"
+                for i, doc in enumerate(documents)
+            ]
+        )
+
+        prompt = f"""
+        당신은 검색 결과의 관련성을 평가하는 전문가입니다.
+
+        사용자 질문: "{query}"
+
+        다음 문서들의 질문에 대한 관련성을 0.0~1.0 점수로 평가하세요.
+
+        문서 목록:
+        {docs_text}
+
+        각 문서에 대해 관련성 점수를 매기고, JSON 형식으로만 응답하세요.
+        관련성이 높을수록 1.0에 가깝고, 관련 없으면 0.0에 가깝습니다.
+
+        출력 형식 (JSON만, 다른 텍스트 없이):
+        {{
+            "scores": [0.9, 0.7, 0.3, ...]
+        }}
+        """
+
+        payload = {
+            "model": "meta/llama-3.1-70b-instruct",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+            "max_tokens": 256,
+            "stream": False,
+        }
+
+        try:
+            content = await self._call_chat_api(headers, payload)
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            result = json.loads(clean_content)
+            scores = result.get("scores", [])
+
+            # 점수를 문서에 추가하고 정렬
+            scored_docs = []
+            for i, doc in enumerate(documents):
+                doc_copy = doc.copy()
+                doc_copy["relevance_score"] = scores[i] if i < len(scores) else 0.0
+                scored_docs.append(doc_copy)
+
+            # 관련성 점수로 내림차순 정렬
+            scored_docs.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
+            print(f"[Rerank] Reranked {len(documents)} documents")
+            return scored_docs[:top_k]
+
+        except Exception as e:
+            print(f"[Rerank] Error during reranking: {e}, returning original order")
+            return documents[:top_k]
+
 
 class OpenAILLMService(NvidiaLLMService):
     """
@@ -396,6 +489,76 @@ class OpenAILLMService(NvidiaLLMService):
         except Exception as e:
             print(f"Entities extraction error: {e}")
             return GraphData(events=[], emotions=[])
+
+    async def rerank(
+        self, query: str, documents: List[dict], top_k: int = 5
+    ) -> List[dict]:
+        """
+        OpenAI 기반 Reranking: 질문과 각 문서의 관련성을 평가하여 재순위화.
+        """
+        if not documents:
+            return []
+
+        if not settings.OPENAI_API_KEY:
+            print("WARNING: OPENAI_API_KEY not set. Returning original order.")
+            return documents[:top_k]
+
+        # 문서들을 번호와 함께 포맷팅
+        docs_text = "\n".join(
+            [
+                f"[문서 {i+1}] {doc.get('title', '제목 없음')}: {doc.get('content', '')[:500]}"
+                for i, doc in enumerate(documents)
+            ]
+        )
+
+        prompt = f"""
+        당신은 검색 결과의 관련성을 평가하는 전문가입니다.
+
+        사용자 질문: "{query}"
+
+        다음 문서들의 질문에 대한 관련성을 0.0~1.0 점수로 평가하세요.
+
+        문서 목록:
+        {docs_text}
+
+        각 문서에 대해 관련성 점수를 매기고, JSON 형식으로만 응답하세요.
+        관련성이 높을수록 1.0에 가깝고, 관련 없으면 0.0에 가깝습니다.
+
+        출력 형식 (JSON만, 다른 텍스트 없이):
+        {{
+            "scores": [0.9, 0.7, 0.3, ...]
+        }}
+        """
+
+        payload = {
+            "model": settings.OPENAI_MODEL_NAME,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+            "max_tokens": 256,
+            "stream": False,
+        }
+
+        try:
+            content = await self._call_chat_api({}, payload)
+            clean_content = content.replace("```json", "").replace("```", "").strip()
+            result = json.loads(clean_content)
+            scores = result.get("scores", [])
+
+            # 점수를 문서에 추가하고 정렬
+            scored_docs = []
+            for i, doc in enumerate(documents):
+                doc_copy = doc.copy()
+                doc_copy["relevance_score"] = scores[i] if i < len(scores) else 0.0
+                scored_docs.append(doc_copy)
+
+            # 관련성 점수로 내림차순 정렬
+            scored_docs.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
+            print(f"[Rerank] Reranked {len(documents)} documents")
+            return scored_docs[:top_k]
+
+        except Exception as e:
+            print(f"[Rerank] Error during reranking: {e}, returning original order")
+            return documents[:top_k]
 
 
 def get_llm_service() -> LLMServiceInterface:

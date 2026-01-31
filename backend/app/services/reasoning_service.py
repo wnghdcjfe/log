@@ -12,9 +12,10 @@ class ReasoningService:
         """
         Orchestrate the RAG process:
         1. Embed question
-        2. Vector Search (Top-K records)
-        3. Graph Traversal (Context Expansion around records)
-        4. LLM Reasoning (Syntehsize answer)
+        2. Hybrid Search (Vector + Text with RRF)
+        3. Reranking (LLM-based relevance scoring)
+        4. Graph Traversal (Context Expansion around records)
+        5. LLM Reasoning (Synthesize answer)
         """
 
         # 1. Embed Question
@@ -22,22 +23,34 @@ class ReasoningService:
 
         # 2. Hybrid Search (Vector + Text)
         # 벡터 검색(의미 기반)과 텍스트 검색(키워드 기반)을 결합하여 검색 품질 향상
-        vector_results = await vector_db.search(
+        # Reranking을 위해 더 많은 후보를 가져옴
+        initial_results = await vector_db.search(
             query_vector=query_embedding,
             user_id=request.userId,
-            top_k=5,
-            query_text=request.text,  # 하이브리드 검색을 위한 원본 텍스트
+            top_k=10,  # Reranking을 위해 더 많이 가져옴
+            query_text=request.text,
             use_hybrid=True,
             vector_weight=0.5,
             text_weight=0.5,
         )
 
+        print(f"[DEBUG] Hybrid search found {len(initial_results)} candidates")
+
+        # 3. Reranking (LLM-based)
+        # 초기 검색 결과를 질문과의 관련성에 따라 재순위화
+        reranked_results = await llm_service.rerank(
+            query=request.text,
+            documents=initial_results,
+            top_k=5,  # 최종 사용할 문서 수
+        )
+
+        print(f"[DEBUG] After reranking: {len(reranked_results)} documents selected")
+
         # Use MongoDB _id for frontend compatibility
-        record_ids = [str(res["_id"]) for res in vector_results if "_id" in res]
-        print(f"[DEBUG] Vector search found {len(vector_results)} records")
+        record_ids = [str(res["_id"]) for res in reranked_results if "_id" in res]
         print(f"[DEBUG] Record IDs (MongoDB _id): {record_ids}")
 
-        # 3. Graph Retrieval (Context Subgraph)
+        # 4. Graph Retrieval (Context Subgraph)
         graph_context = await neo4j_db.get_context_subgraph(
             user_id=request.userId,
             record_ids=record_ids,
@@ -48,14 +61,14 @@ class ReasoningService:
             f"[DEBUG] Graph context - Nodes: {len(graph_context.get('nodes', []))}, Edges: {len(graph_context.get('edges', []))}"
         )
 
-        # 4. LLM Reasoning
+        # 5. LLM Reasoning
         llm_response = await llm_service.generate_answer_with_reasoning(
             question=request.text,
-            context_records=vector_results,
+            context_records=reranked_results,  # Reranked 결과 사용
             context_graph=graph_context,
         )
 
-        # 5. Construct Response
+        # 6. Construct Response
         return QuestionResponse(
             answer=llm_response.get("answer", "I couldn't generate an answer."),
             confidence=llm_response.get("confidence", 0.0),
