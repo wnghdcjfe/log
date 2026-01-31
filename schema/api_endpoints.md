@@ -35,9 +35,7 @@
 *   **입력 (Input)**:
     *   `userId` (string, 필수).
     *   `text` (string, 필수): 질문 내용.
-    *   `searchSessionId` (string, 선택): 이전 `/search` 호출에서 받은 컨텍스트 ID.
 *   **출력 (Output)**:
     *   `answer` (string): 자연어 답변.
     *   `reasoningPath` (object): 답변에 도달하기 위한 경로 (`nodes`, `edges`, `records`).
     *   `confidence` (float): 신뢰도 점수.
-    *   `caveat` (string, 선택): 답변에 대한 주의사항 또는 한계점.
