@@ -2,17 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { DiaryEditor } from '../components/DiaryEditor'
 import { createDiary } from '../api/diaries'
 import { useDiariesContext } from '../context/DiariesContext'
-import {
-  format,
-  addMonths,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameMonth,
-  isToday,
-} from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { format } from 'date-fns'
 
 const MOODS = [
   { id: 'radiant', label: '기쁨', icon: 'sentiment_very_satisfied' },
@@ -38,10 +28,8 @@ export function WritePage() {
   const [feel, setFeel] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
-  const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
 
   const prompt = useMemo(
     () => REFLECTIVE_PROMPTS[Math.floor(Math.random() * REFLECTIVE_PROMPTS.length)],
@@ -61,15 +49,6 @@ export function WritePage() {
       }
     }
   }, [])
-
-  useEffect(() => {
-    const d = new Date(date)
-    if (isNaN(d.getTime())) return
-    setCalendarMonth((prev) => {
-      if (d.getMonth() !== prev.getMonth() || d.getFullYear() !== prev.getFullYear()) return d
-      return prev
-    })
-  }, [date])
 
   const handleEditorChange = (_html: string, plainText: string) => {
     setContent(plainText)
@@ -100,7 +79,6 @@ export function WritePage() {
       .filter(Boolean)
 
     setSaving(true)
-    setSaveError(null)
 
     try {
       await createDiary({
@@ -128,18 +106,12 @@ export function WritePage() {
       }, 2500)
     } catch (err) {
       if (!isMountedRef.current) return
-      setSaveError(err instanceof Error ? err.message : '저장 실패')
+      console.error('Save error:', err)
     } finally {
       if (!isMountedRef.current) return
       setSaving(false)
     }
   }
-
-  const monthStart = startOfMonth(calendarMonth)
-  const monthEnd = endOfMonth(calendarMonth)
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
-  const paddingStart = monthStart.getDay()
-  const paddingEnd = 42 - paddingStart - days.length
 
   const canSubmit = !!title.trim() && !!content.trim() && !saving
 

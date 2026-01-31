@@ -3,7 +3,7 @@ import { useDiariesContext } from '@/context/DiariesContext'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import type { RecordNode } from '@/data/mockData'
-import { ChevronDown, ChevronUp, Pencil, Trash2, Copy, Check } from 'lucide-react'
+import { ChevronDown, ChevronUp, Trash2, Copy, Check } from 'lucide-react'
 import { updateDiary, deleteDiary } from '@/api/diaries'
 
 interface DiaryItem {
@@ -51,15 +51,6 @@ export function ReadPage() {
         d.content.toLowerCase().includes(q)
     )
   }, [allDiaries, searchKeyword])
-
-  const startEdit = (d: DiaryItem) => {
-    setEditingId(d.id)
-    setEditTitle(d.title)
-    setEditContent(d.content)
-    setEditFeel(d.emotion ?? '')
-    setEditDate(d.date)
-    setError(null)
-  }
 
   const cancelEdit = () => {
     setEditingId(null)
