@@ -7,3 +7,4 @@ neo4j
 httpx
 pytest
 pytest-asyncio
+aiofiles
