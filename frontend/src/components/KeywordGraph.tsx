@@ -10,6 +10,8 @@ interface GraphNode {
   label: string
   diary?: RecordNode
   match: boolean
+  /** 관계도 점수(클수록 더 크게 표출) */
+  score?: number
   x?: number
   y?: number
   fx?: number
@@ -46,15 +48,27 @@ export function KeywordGraph({
     const kwLabel = query.trim() ? `#${query.trim()}` : '#전체'
     const keywordId = query.trim() ? `kw:${query.trim()}` : 'kw:all'
 
+    // 관계도(score) 계산 규칙
+    // - match이면 가중치 크게
+    // - people 수가 많으면 약간 더 크게 (최대 3명까지만 반영)
+    const calcScore = (d: RecordNode, isMatch: boolean) => {
+      const peopleCount = (d.people ?? []).length
+      return (isMatch ? 3 : 1) + Math.min(peopleCount, 3) * 0.5
+    }
+
     const graphNodes: GraphNode[] = [
-      { id: keywordId, kind: 'keyword', label: kwLabel, match: true },
-      ...displayNodes.map((d) => ({
-        id: d.id,
-        kind: 'diary' as const,
-        label: `${format(new Date(d.timestamp), 'yyyy-MM-dd', { locale: ko })}\n${d.label}`,
-        diary: d,
-        match: matchedNodeIds.includes(d.id),
-      })),
+      { id: keywordId, kind: 'keyword', label: kwLabel, match: true, score: 999 },
+      ...displayNodes.map((d) => {
+        const isMatch = matchedNodeIds.includes(d.id)
+        return {
+          id: d.id,
+          kind: 'diary' as const,
+          label: `${format(new Date(d.timestamp), 'yyyy-MM-dd', { locale: ko })}\n${d.label}`,
+          diary: d,
+          match: isMatch,
+          score: calcScore(d, isMatch),
+        }
+      }),
     ]
 
     const links = graphNodes
@@ -85,11 +99,22 @@ export function KeywordGraph({
       target: graphNodes.find((n) => n.id === l.target)!,
     }))
 
+    // 반지름(r): score 기반으로 diary 노드를 더 크게
+    const r = (d: GraphNode) => {
+      if (d.kind === 'keyword') return 75
+      const s = d.score ?? 1
+      // score 1~5 정도를 52~70 정도로 맵핑
+      const base = 52
+      const rr = base + (s - 1) * 6
+      return Math.max(48, Math.min(70, rr))
+    }
+
     const sim = d3
       .forceSimulation<GraphNode>(graphNodes)
       .force(
         'link',
-        d3.forceLink<GraphNode, { source: GraphNode; target: GraphNode }>(linkData)
+        d3
+          .forceLink<GraphNode, { source: GraphNode; target: GraphNode }>(linkData)
           .id((d) => d.id)
           .distance(170)
           .strength(0.9)
@@ -98,7 +123,8 @@ export function KeywordGraph({
       .force('center', d3.forceCenter(w / 2, h / 2))
       .force(
         'collide',
-        d3.forceCollide<GraphNode>().radius((d) => (d.kind === 'keyword' ? 85 : 72))
+        // 원이 커지면 collide도 같이 커져야 겹침/튕김이 자연스럽습니다.
+        d3.forceCollide<GraphNode>().radius((d) => r(d) + 12)
       )
 
     const link = g
@@ -121,7 +147,7 @@ export function KeywordGraph({
 
     node
       .append('circle')
-      .attr('r', (d) => (d.kind === 'keyword' ? 75 : 60))
+      .attr('r', (d) => r(d))
       .attr('fill', (d) =>
         d.kind === 'keyword' ? '#8b6355' : d.match ? '#FFB6A3' : '#FFDAB9'
       )
@@ -164,12 +190,9 @@ export function KeywordGraph({
           d.fy = d.y
         })
         .on('drag', (ev, d) => {
-          // Check if moved more than 3 pixels to mark as dragging
           const dx = Math.abs(ev.x - dragStartPos.x)
           const dy = Math.abs(ev.y - dragStartPos.y)
-          if (dx > 3 || dy > 3) {
-            isDragging = true
-          }
+          if (dx > 3 || dy > 3) isDragging = true
           d.fx = ev.x
           d.fy = ev.y
         })
@@ -177,10 +200,6 @@ export function KeywordGraph({
           if (!ev.active) sim.alphaTarget(0)
           d.fx = undefined
           d.fy = undefined
-          // Reset drag flag after a short delay
-          setTimeout(() => {
-            isDragging = false
-          }, 100)
         })
     )
 
@@ -200,15 +219,9 @@ export function KeywordGraph({
       })
       .on('click', (ev, d) => {
         ev.stopPropagation()
-        // Ignore click if it was actually a drag
-        if (isDragging) {
-          return
-        }
-        if (d.kind === 'diary' && d.diary) {
-          onNodeSelect(d.diary)
-        } else {
-          onNodeSelect(null)
-        }
+        if (isDragging) return
+        if (d.kind === 'diary' && d.diary) onNodeSelect(d.diary)
+        else onNodeSelect(null)
       })
 
     svg.on('click', () => onNodeSelect(null))
@@ -219,6 +232,7 @@ export function KeywordGraph({
         .attr('y1', (d) => d.source.y ?? 0)
         .attr('x2', (d) => d.target.x ?? 0)
         .attr('y2', (d) => d.target.y ?? 0)
+
       node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`)
     })
 

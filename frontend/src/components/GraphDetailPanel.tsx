@@ -11,7 +11,7 @@ export function GraphDetailPanel({ node, onViewOriginal }: GraphDetailPanelProps
   if (!node) {
     return (
       <p className="text-[#8b6355]/70 text-sm leading-relaxed">
-        일기 노드를 클릭하면 내용이 표시됩니다.
+        노드를 클릭하면 일기 내용이 표시됩니다.
       </p>
     )
   }
