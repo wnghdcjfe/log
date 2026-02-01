@@ -3,6 +3,10 @@
 OUTBRAIN은 일기를 단순히 저장하지 않고, 기록을 벡터와 그래프로 구조화하여 개인의 기억과 경험을 분석하는 인사이트 다이어리입니다. 
 
 사용자는 일기를 쓰는 것만으로 과거의 감정, 사람, 사건이 어떻게 반복·연결되는지를 그래프 기반 인사이트로 확인할 수 있습니다. 
+<img width="2104" height="1858" alt="스크린샷 2026-02-01 오전 9 56 30" src="https://github.com/user-attachments/assets/6bc033ec-21ed-4fa7-89f0-fc1626870183" />
+<img width="2012" height="1364" alt="스크린샷 2026-02-01 오전 9 56 10" src="https://github.com/user-attachments/assets/3e3bb3e1-6d5c-4e20-ab1c-77dfcd182499" /> 
+
+
 
 ### 핵심 가치
 
